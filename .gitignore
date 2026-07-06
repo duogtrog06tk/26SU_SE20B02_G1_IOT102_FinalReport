@@ -1,0 +1,25 @@
+# Maven build outputs
+target/
+*.war
+*.ear
+*.jar
+
+# IDE Configurations
+.idea/
+*.iml
+.settings/
+.project
+.classpath
+.metadata/
+bin/
+tmp/
+
+# Security Keys (Firebase Credentials - DO NOT COMMIT)
+src/main/resources/serviceAccountKey.json
+serviceAccountKey.json
+
+# Local history & temporary files
+*.log
+.nb-gradle/
+nbproject/private/
+build/
