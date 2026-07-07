@@ -1,0 +1,12 @@
+# Chặn các tệp cấu hình môi trường ảo Python (nếu có)
+**/venv/
+.venv/
+venv/
+ENV/
+
+# Chặn tất cả các thư mục __pycache__ ở bất kỳ cấp thư mục nào
+**/__pycache__/
+
+# Chặn các tệp mã nguồn đã biên dịch lẻ
+*.py[cod]
+*$py.class
