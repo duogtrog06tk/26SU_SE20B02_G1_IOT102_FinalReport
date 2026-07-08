@@ -43,6 +43,14 @@ class FirebaseService:
             )
             raise
 
+    def register_server_ip(self, ip, port=5000):
+        """Ghi địa chỉ IP:port của AI-server lên Firebase để ESP32 tự động đọc."""
+        url = f"http://{ip}:{port}"
+        ref = db.reference("System/AI_Server_IP")
+        ref.set({"url": url})
+        logger.info(f"Đã đăng ký AI-Server IP lên Firebase: {url}")
+        return url
+
     def should_skip_duplicate(self, student_id):
         """
         Kiểm tra xem học sinh này có vừa được điểm danh trong vài giây gần đây không.

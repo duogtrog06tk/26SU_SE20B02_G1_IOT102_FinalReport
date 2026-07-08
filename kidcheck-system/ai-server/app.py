@@ -72,32 +72,28 @@ def recognize():
         result = face_service.recognize(image_rgb)
 
         if not result["recognized"]:
-            logger.info("Kết quả: KHÔNG nhận ra (unknown)")
-            return jsonify({"status": "unknown"}), 200
+             return jsonify({"status": "unknown", "success": False}), 200
 
         student_id = result["student_id"]
 
-        # Chống ghi điểm danh trùng liên tục trong vài giây
         if firebase_service.should_skip_duplicate(student_id):
-            return jsonify({
-                "status": "known",
-                "student_id": student_id,
+             return jsonify({
+                "status": "known", "success": True,
+                "student_id": student_id, "name": student_id,
                 "note": "duplicate_skipped"
             }), 200
 
         record = firebase_service.write_attendance(student_id)
-
-        logger.info(f"Kết quả: NHẬN RA {student_id} | trạng thái: {record['status']}")
         return jsonify({
-            "status": "known",
-            "student_id": student_id,
+            "status": "known", "success": True,
+            "student_id": student_id, "name": student_id,
             "attendance_status": record["status"],
             "timestamp": record["timestamp"]
         }), 200
 
     except Exception as e:
         logger.exception("Lỗi không mong muốn trong /recognize")
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return jsonify({"status": "error", "success": False, "message": str(e)}), 500
 
 
 @app.route("/register", methods=["POST"])
@@ -167,7 +163,30 @@ def health():
         "known_students": len(set(face_service.known_names))
     }), 200
 
+import socket
 
+@app.route("/device-boot", methods=["POST"])
+def device_boot():
+    """ESP32-CAM gọi khi vừa kết nối WiFi thành công, báo trạng thái online."""
+    data = request.get_json(silent=True) or {}
+    device_id = data.get("device_id", "unknown")
+    device_ip = data.get("ip", "unknown")
+    logger.info(f"Thiết bị {device_id} online tại IP {device_ip}")
+    return jsonify({"status": "ok"}), 200
+
+def get_local_ip():
+    """Lấy IP LAN thực của máy đang chạy ai-server (không phải 127.0.0.1)."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = "127.0.0.1"
+    finally:
+        s.close()
+    return ip
 if __name__ == "__main__":
     logger.info("Đang khởi động KidCheck AI Server...")
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    local_ip = get_local_ip()
+    firebase_service.register_server_ip(local_ip, 5000)
+    app.run(host="0.0.0.0", port=5000, debug=False)
