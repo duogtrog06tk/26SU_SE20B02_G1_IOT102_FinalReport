@@ -316,7 +316,6 @@
 
                     <!-- WELCOME BANNER (NHẬN DIỆN KHẨN CẤP) -->
                     <div id="latest-welcome-card" class="welcome-panel">
-                        <div class="speech-bubble"><i class="fa-solid fa-volume-high"></i> <span data-i18n="voice-ai-on">Giọng nói AI: Bật</span></div>
                         <div class="welcome-avatar-container">
                             <img id="welcome-photo" src="https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=150&auto=format&fit=crop" class="welcome-avatar" alt="Avatar bé">
                             <div id="welcome-badge" class="welcome-status-badge welcome-status-present"><i class="fa-solid fa-check"></i></div>
@@ -344,9 +343,6 @@
                             <div class="welcome-detail-item">
                                 <span data-i18n="w-time">Thời gian ghi nhận:</span>
                                 <strong id="welcome-time">-</strong>
-                            </div>
-                            <div class="health-badge" id="welcome-health-badge">
-                                <i class="fa-solid fa-heart-pulse"></i> <span data-i18n="w-health-prefix">Ghi chú sức khỏe:</span> <span id="welcome-health">Bình thường</span>
                             </div>
                         </div>
                     </div>
@@ -821,6 +817,10 @@
                 <div class="form-group">
                     <label for="class-desc" data-i18n="lbl-class-desc-form">Độ tuổi / Mô tả</label>
                     <input type="text" id="class-desc" class="form-input" placeholder="Ví dụ: 3 - 4 tuổi" required>
+                </div>
+                <div class="form-group">
+                    <label for="class-max-capacity">Sĩ số tối đa</label>
+                    <input type="number" id="class-max-capacity" class="form-input" min="1" value="25" required>
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeClassModal()" data-i18n="btn-close">Đóng lại</button>
@@ -1909,7 +1909,7 @@
                 tbody.innerHTML += `
                     <tr>
                         <td><strong>${c.name}</strong></td>
-                        <td><strong style="color: var(--primary-dark); font-size:1.1rem;">${count}</strong> bé yêu đang học</td>
+                        <td><strong style="color: var(--primary-dark); font-size:1.1rem;">${count} / ${c.maxCapacity || 25}</strong> bé đang học</td>
                         <td><strong style="color: var(--primary-dark);">${c.startTime || '07:00'} - ${c.lateTime || '08:15'}</strong></td>
                         <td><span style="background:rgba(108, 92, 231, 0.1); color:#6C5CE7; padding:6px 12px; border-radius:10px; font-weight:700; font-size:0.85rem;">${c.desc}</span></td>
                         ${actionHtml}
@@ -2056,6 +2056,7 @@
         function openClassModal() {
             document.getElementById('class-name').value = '';
             document.getElementById('class-desc').value = '';
+            document.getElementById('class-max-capacity').value = 25;
             document.getElementById('class-modal').style.display = 'flex';
         }
 
@@ -2067,6 +2068,7 @@
             e.preventDefault();
             const name = document.getElementById('class-name').value.trim();
             const desc = document.getElementById('class-desc').value.trim();
+            const maxCapacity = parseInt(document.getElementById('class-max-capacity').value) || 25;
 
             if (!name) return;
 
@@ -2074,7 +2076,7 @@
                 const res = await fetch('api/classes', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, desc })
+                    body: JSON.stringify({ name, desc, maxCapacity })
                 });
 
                 if (res.status === 409) {
@@ -2331,14 +2333,7 @@
 
         // Voice Welcoming & Welcome Panel Updates
         function speakWelcome(text) {
-            if (!settings.voiceEnabled) return;
-            try {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = currentLang === 'vi' ? 'vi-VN' : 'en-US';
-                window.speechSynthesis.speak(utterance);
-            } catch (e) {
-                console.error("Lỗi phát giọng nói:", e);
-            }
+            // Giọng nói AI đã bị loại bỏ theo yêu cầu người dùng
         }
 
         function updateWelcomePanel(student) {
@@ -2350,7 +2345,11 @@
             document.getElementById('welcome-parent').innerText = student.parentName || '-';
             document.getElementById('welcome-phone').innerText = student.parentPhone || '-';
             document.getElementById('welcome-time').innerText = student.time || '-';
-            document.getElementById('welcome-health').innerText = student.healthNote || (currentLang === 'vi' ? 'Bình thường' : 'Normal');
+            
+            const healthEl = document.getElementById('welcome-health');
+            if (healthEl) {
+                healthEl.innerText = student.healthNote || (currentLang === 'vi' ? 'Bình thường' : 'Normal');
+            }
 
             const badge = document.getElementById('welcome-badge');
             badge.className = "welcome-status-badge";
