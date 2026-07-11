@@ -22,24 +22,38 @@ import com.mycompany.webappcamerakidcheck.model.Student;
 @WebServlet(name = "StudentController", urlPatterns = {"/api/students"})
 public class StudentController extends HttpServlet {
 
-    public static final List<Student> localBackupList = new ArrayList<>();
+    private static final List<Student> localBackupList = new ArrayList<>();
     private final Gson gson = new Gson();
 
     @Override
     public void init() throws ServletException {
+        // Tải dữ liệu mặc định ban đầu nếu Firebase trống
+        if (localBackupList.isEmpty()) {
+            localBackupList.add(new Student("HS001", "Nguyễn Gia Bảo", "Mầm 1", "Chưa điểm danh", "https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=150&auto=format&fit=crop", "", "Nguyễn Gia Hưng", "0901234567", "Dị ứng với đậu phộng", "Chưa đến"));
+            localBackupList.add(new Student("HS002", "Lê Mỹ An", "Mầm 1", "Chưa điểm danh", "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop", "", "Lê Anh Tuấn", "0912345678", "Bình thường", "Chưa đến"));
+            localBackupList.add(new Student("HS003", "Trần Minh Khang", "Chồi 2", "Chưa điểm danh", "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop", "", "Phan Thanh Mai", "0987654321", "Cận thị nhẹ", "Chưa đến"));
+            localBackupList.add(new Student("HS004", "Phạm Vy Anh", "Chồi 2", "Chưa điểm danh", "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop", "", "Phạm Hồng Phước", "0976543210", "Dị ứng hải sản", "Chưa đến"));
+            localBackupList.add(new Student("HS005", "Hoàng Đức Nam", "Lá 3", "Chưa điểm danh", "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop", "", "Hoàng Văn Khánh", "0965432109", "Bình thường", "Chưa đến"));
+        }
+        
         try {
             // Đăng ký đồng bộ dữ liệu thời gian thực từ Firebase sang local list
             DatabaseReference ref = FirebaseConfig.getDatabase().getReference("students");
             ref.addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {
-                    localBackupList.clear();
                     if (dataSnapshot.exists()) {
+                        localBackupList.clear();
                         for (DataSnapshot postSnapshot : dataSnapshot.getChildren()) {
                             Student student = postSnapshot.getValue(Student.class);
                             if (student != null) {
                                 localBackupList.add(student);
                             }
+                        }
+                    } else {
+                        // Nếu Firebase trống, đẩy dữ liệu mẫu lên Firebase
+                        for (Student s : localBackupList) {
+                            ref.child(s.getId()).setValueAsync(s);
                         }
                     }
                 }

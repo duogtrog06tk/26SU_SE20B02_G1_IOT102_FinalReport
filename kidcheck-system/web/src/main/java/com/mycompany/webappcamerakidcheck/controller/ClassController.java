@@ -25,18 +25,29 @@ public class ClassController extends HttpServlet {
 
     @Override
     public void init() throws ServletException {
+        if (localBackupList.isEmpty()) {
+            localBackupList.add(new SchoolClass("Mầm 1", "Trẻ từ 3 đến 4 tuổi"));
+            localBackupList.add(new SchoolClass("Chồi 2", "Trẻ từ 4 đến 5 tuổi"));
+            localBackupList.add(new SchoolClass("Lá 3", "Trẻ từ 5 đến 6 tuổi"));
+        }
+
         try {
             DatabaseReference ref = FirebaseConfig.getDatabase().getReference("classes");
             ref.addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {
-                    localBackupList.clear();
                     if (dataSnapshot.exists()) {
+                        localBackupList.clear();
                         for (DataSnapshot postSnapshot : dataSnapshot.getChildren()) {
                             SchoolClass schoolClass = postSnapshot.getValue(SchoolClass.class);
                             if (schoolClass != null) {
                                 localBackupList.add(schoolClass);
                             }
+                        }
+                    } else {
+                        // Khởi chạy dữ liệu mẫu lên Firebase
+                        for (SchoolClass c : localBackupList) {
+                            ref.child(c.getName()).setValueAsync(c);
                         }
                     }
                 }

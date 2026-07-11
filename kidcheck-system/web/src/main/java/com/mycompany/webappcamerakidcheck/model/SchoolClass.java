@@ -5,7 +5,7 @@ public class SchoolClass {
     private String desc;
     private String startTime;
     private String lateTime;
-    private int maxStudents = 30; // Sĩ số tối đa mặc định là 30
+    private int maxCapacity;
 
     public SchoolClass() {}
 
@@ -14,23 +14,23 @@ public class SchoolClass {
         this.desc = desc;
         this.startTime = "07:00";
         this.lateTime = "08:15";
-        this.maxStudents = 30;
+        this.maxCapacity = 25;
     }
 
-    public SchoolClass(String name, String desc, int maxStudents) {
-        this.name = name;
-        this.desc = desc;
-        this.startTime = "07:00";
-        this.lateTime = "08:15";
-        this.maxStudents = maxStudents;
-    }
-
-    public SchoolClass(String name, String desc, String startTime, String lateTime, int maxStudents) {
+    public SchoolClass(String name, String desc, String startTime, String lateTime) {
         this.name = name;
         this.desc = desc;
         this.startTime = startTime;
         this.lateTime = lateTime;
-        this.maxStudents = maxStudents;
+        this.maxCapacity = 25;
+    }
+
+    public SchoolClass(String name, String desc, String startTime, String lateTime, int maxCapacity) {
+        this.name = name;
+        this.desc = desc;
+        this.startTime = startTime;
+        this.lateTime = lateTime;
+        this.maxCapacity = maxCapacity;
     }
 
     public String getName() { return name; }
@@ -45,6 +45,6 @@ public class SchoolClass {
     public String getLateTime() { return lateTime; }
     public void setLateTime(String lateTime) { this.lateTime = lateTime; }
 
-    public int getMaxStudents() { return maxStudents; }
-    public void setMaxStudents(int maxStudents) { this.maxStudents = maxStudents; }
+    public int getMaxCapacity() { return maxCapacity; }
+    public void setMaxCapacity(int maxCapacity) { this.maxCapacity = maxCapacity; }
 }
