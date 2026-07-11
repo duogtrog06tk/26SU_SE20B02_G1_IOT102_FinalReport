@@ -269,7 +269,6 @@
 
                     <!-- WELCOME BANNER (NHẬN DIỆN KHẨN CẤP) -->
                     <div id="latest-welcome-card" class="welcome-panel">
-                        <div class="speech-bubble"><i class="fa-solid fa-volume-high"></i> <span data-i18n="voice-ai-on">Giọng nói AI: Bật</span></div>
                         <div class="welcome-avatar-container">
                             <img id="welcome-photo" src="https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=150&auto=format&fit=crop" class="welcome-avatar" alt="Avatar bé">
                             <div id="welcome-badge" class="welcome-status-badge welcome-status-present"><i class="fa-solid fa-check"></i></div>
@@ -342,7 +341,7 @@
                             <thead>
                                 <tr>
                                     <th data-i18n="th-classname">Tên lớp học</th>
-                                    <th data-i18n="th-total-kids">Số lượng bé yêu</th>
+                                    <th data-i18n="th-total-kids">Sĩ số (Hiện tại / Tối đa)</th>
                                     <th data-i18n="th-class-time">Giờ đón & Giờ trễ</th>
                                     <th data-i18n="th-age-desc">Độ tuổi / Mô tả</th>
                                     <th class="admin-only" data-i18n="th-action">Hành động</th>
@@ -794,6 +793,10 @@
                 <div class="form-group">
                     <label for="class-desc" data-i18n="lbl-class-desc-form">Độ tuổi / Mô tả</label>
                     <input type="text" id="class-desc" class="form-input" placeholder="Ví dụ: 3 - 4 tuổi" required>
+                </div>
+                <div class="form-group">
+                    <label for="class-max-students" data-i18n="lbl-class-max-form">Sĩ số tối đa</label>
+                    <input type="number" id="class-max-students" class="form-input" placeholder="Ví dụ: 30" required value="30" min="1">
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeClassModal()" data-i18n="btn-close">Đóng lại</button>
@@ -1954,7 +1957,7 @@
                 tbody.innerHTML += `
                     <tr>
                         <td><strong>${c.name}</strong></td>
-                        <td><strong style="color: var(--primary-dark); font-size:1.1rem;">${count}</strong> bé yêu đang học</td>
+                        <td><strong style="color: var(--primary-dark); font-size:1.1rem;">${count} / ${c.maxStudents || 30}</strong> học sinh</td>
                         <td><strong style="color: var(--primary-dark);">${c.startTime || '07:00'} - ${c.lateTime || '08:15'}</strong></td>
                         <td><span style="background:rgba(108, 92, 231, 0.1); color:#6C5CE7; padding:6px 12px; border-radius:10px; font-weight:700; font-size:0.85rem;">${c.desc}</span></td>
                         ${actionHtml}
@@ -2101,6 +2104,8 @@
         function openClassModal() {
             document.getElementById('class-name').value = '';
             document.getElementById('class-desc').value = '';
+            const maxEl = document.getElementById('class-max-students');
+            if (maxEl) maxEl.value = '30';
             document.getElementById('class-modal').style.display = 'flex';
         }
 
@@ -2112,6 +2117,8 @@
             e.preventDefault();
             const name = document.getElementById('class-name').value.trim();
             const desc = document.getElementById('class-desc').value.trim();
+            const maxEl = document.getElementById('class-max-students');
+            const maxStudents = maxEl ? (parseInt(maxEl.value) || 30) : 30;
 
             if (!name) return;
 
@@ -2119,7 +2126,7 @@
                 const res = await fetch('api/classes', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, desc })
+                    body: JSON.stringify({ name, desc, maxStudents })
                 });
 
                 if (res.status === 409) {
@@ -2376,14 +2383,7 @@
 
         // Voice Welcoming & Welcome Panel Updates
         function speakWelcome(text) {
-            if (!settings.voiceEnabled) return;
-            try {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = currentLang === 'vi' ? 'vi-VN' : 'en-US';
-                window.speechSynthesis.speak(utterance);
-            } catch (e) {
-                console.error("Lỗi phát giọng nói:", e);
-            }
+            // Đã tắt tính năng phát giọng nói AI theo yêu cầu
         }
 
         function updateWelcomePanel(student) {
