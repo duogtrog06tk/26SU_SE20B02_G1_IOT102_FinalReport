@@ -1,0 +1,3113 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KidCheck - Hệ Thống Điểm Danh & Quản Lý Trẻ Em Thông Minh</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- FontAwesome for cute icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body data-theme="light">
+
+    <!-- 1. LANDING PAGE CÔNG KHẢI (GUEST) -->
+    <div id="landing-page" class="landing-wrapper">
+        <header class="landing-header">
+            <div class="landing-logo">
+                <i class="fa-solid fa-face-laugh-beam"></i> <span data-i18n="app-title">KidCheck</span>
+            </div>
+            <div class="landing-nav">
+                <button id="btn-portal-login" class="btn btn-primary" onclick="showLoginView()"><i class="fa-solid fa-right-to-bracket"></i> <span data-i18n="btn-login-gate">Đăng Nhập</span></button>
+            </div>
+        </header>
+        
+        <main style="flex: 1;">
+            <!-- Hero Section -->
+            <section class="landing-hero">
+                <div class="hero-text">
+                    <h1 data-i18n="hero-h1">Vì Sự An Toàn Và Nụ Cười Của <span>Bé Yêu</span></h1>
+                    <p data-i18n="hero-p">KidCheck là hệ thống điểm danh camera AI và quản lý đưa đón mầm non thông minh, giúp nhà trường và phụ huynh kết nối tức thời, an tâm gửi gắm con yêu.</p>
+                    <div class="hero-buttons">
+                        <button class="btn btn-primary" onclick="showLoginView('teacher')"><i class="fa-solid fa-graduation-cap"></i> <span data-i18n="gate-teacher">Cán Bộ & Giáo Viên</span></button>
+                        <button class="btn btn-secondary" onclick="showLoginView('parent')" style="border-color: var(--primary); color: var(--primary);"><i class="fa-solid fa-user-group"></i> <span data-i18n="gate-parent">Phụ Huynh Học Sinh</span></button>
+                    </div>
+                </div>
+                <div class="hero-image">
+                    <div class="demo-slider-box" style="width: 100%; max-width: 450px;">
+                        <div class="slider-container">
+                            <div class="slide slide-bg-1 active">
+                                <i class="fa-solid fa-brain"></i>
+                                <h3 data-i18n="slide-1-title">Nhận Diện Khuôn Mặt AI</h3>
+                                <p data-i18n="slide-1-desc">Camera AI tự động điểm danh bé chỉ trong 0.5 giây khi bước vào sảnh trường.</p>
+                            </div>
+                            <div class="slide slide-bg-2">
+                                <i class="fa-solid fa-bell"></i>
+                                <h3 data-i18n="slide-2-title">Thông Báo Tức Thời</h3>
+                                <p data-i18n="slide-2-desc">SMS và ảnh chụp xác thực được gửi ngay cho phụ huynh khi bé vào lớp và ra về.</p>
+                            </div>
+                            <div class="slide slide-bg-3">
+                                <i class="fa-solid fa-shield-heart"></i>
+                                <h3 data-i18n="slide-3-title">Đảm Bảo An Toàn Tuyệt Đối</h3>
+                                <p data-i18n="slide-3-desc">Kiểm soát chặt chẽ quy trình đưa đón, loại bỏ rủi ro bỏ quên hoặc nhầm lẫn bé.</p>
+                            </div>
+                        </div>
+                        <div class="slide-controls">
+                            <span class="slide-dot active" onclick="setSlide(0)"></span>
+                            <span class="slide-dot" onclick="setSlide(1)"></span>
+                            <span class="slide-dot" onclick="setSlide(2)"></span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Public Statistics Section -->
+            <section class="landing-stats-section">
+                <div style="text-align: center; margin-bottom: 40px;">
+                    <h2 style="font-size: 32px; font-weight: 800; color: var(--text);" data-i18n="pub-stats-title">Hôm Nay Tại KidCheck</h2>
+                    <p style="color: var(--text-light);" data-i18n="pub-stats-subtitle">Thống kê hoạt động minh bạch của toàn trường trong ngày</p>
+                </div>
+                <div class="landing-stats-grid">
+                    <div class="pub-stat-card">
+                        <div class="pub-stat-number" id="pub-stat-total">0</div>
+                        <div class="pub-stat-label" data-i18n="pub-stat-kids">Lượt Đưa Đón An Toàn</div>
+                        <div class="pub-stat-desc" data-i18n="pub-stat-kids-desc">Bé được đưa đón an toàn trong năm học</div>
+                    </div>
+                    <div class="pub-stat-card">
+                        <div class="pub-stat-number" id="pub-stat-active">0%</div>
+                        <div class="pub-stat-label" data-i18n="pub-stat-rate">Tỷ Lệ Chuyên Cần</div>
+                        <div class="pub-stat-desc" data-i18n="pub-stat-rate-desc">Tỷ lệ bé đi học đều đặn trung bình tuần qua</div>
+                    </div>
+                    <div class="pub-stat-card">
+                        <div class="pub-stat-number" id="pub-stat-classes">0</div>
+                        <div class="pub-stat-label" data-i18n="pub-stat-cls">Lớp Học Hoạt Động</div>
+                        <div class="pub-stat-desc" data-i18n="pub-stat-cls-desc">Lớp mầm non đang áp dụng camera AI</div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+        
+        <footer class="landing-footer">
+            <p>&copy; 2026 KidCheck Platform. Designed by DeepMind team. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- 2. LOGIN PAGE VIEW -->
+    <div id="login-page" class="auth-wrapper" style="display: none;">
+        <div class="auth-card">
+            <div class="auth-logo"><i class="fa-solid fa-face-laugh-beam"></i> KidCheck</div>
+            <div class="auth-subtitle" data-i18n="login-subtitle">Hệ thống điểm danh mầm non & quản lý đưa đón bé thông minh</div>
+            
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-account" data-i18n="login-acc-label">Số điện thoại hoặc Tài khoản</label>
+                    <input type="text" id="login-account" class="form-input" placeholder="admin / teacher / SĐT phụ huynh" required value="admin">
+                    <span style="font-size: 0.75rem; color: var(--text-light); margin-top: 4px; display: block;" data-i18n="login-tip">Mẹo: admin, teacher, SĐT phụ huynh (ví dụ: 0901234567)</span>
+                </div>
+                <div class="form-group">
+                    <label for="login-password" data-i18n="login-pass-label">Mật khẩu xác thực</label>
+                    <input type="password" id="login-password" class="form-input" placeholder="••••••••" required value="123456">
+                </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 24px;">
+                    <button type="button" class="btn btn-secondary" onclick="showLandingView()" style="flex: 1;" data-i18n="btn-back">Quay lại</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1.5;" data-i18n="btn-login-submit">Đăng Nhập</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER (ADMIN & TEACHER) -->
+    <div id="app-container" class="app-container" style="display: none;">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="app-sidebar">
+            <div class="sidebar-brand">
+                <i class="fa-solid fa-shapes"></i>KidCheck
+            </div>
+            <ul class="nav-menu" id="sidebar-menu">
+                <!-- Sẽ tự động gán mục menu tương ứng với vai trò của người dùng -->
+            </ul>
+            <div class="sidebar-user">
+                <div class="user-info">
+                    <span id="display-user-name" class="user-name">Đang tải...</span>
+                    <span id="display-user-role" class="user-role">Đang tải...</span>
+                </div>
+                <button id="logout-btn" class="btn-logout" title="Đăng xuất" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i></button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-wrapper">
+            
+            <!-- 3. SECTION: DASHBOARD -->
+            <section id="page-dashboard" class="app-page">
+                <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+                    <div>
+                        <h1 class="page-title" data-i18n="dash-title">Chào ngày mới cùng KidCheck! 👋</h1>
+                        <p style="color: var(--text-light); font-size: 1.05rem;"><span data-i18n="dash-subtitle">Bảng theo dõi đưa đón và điểm danh các bé hôm nay -</span> <span id="current-date-text" style="font-weight: 700; color: var(--primary);"></span></p>
+                    </div>
+                    <!-- Dropdown lọc theo lớp cho Admin trên Dashboard -->
+                    <div id="dash-class-filter-container" class="admin-only" style="display: none;">
+                        <label for="dash-class-select" style="font-weight: 700; margin-right: 8px; color: var(--text-light);" data-i18n="lbl-class-filter">Lọc theo lớp học</label>
+                        <select id="dash-class-select" class="form-input" style="width: 200px; display: inline-block;" onchange="loadDashboard()">
+                            <option value="all" data-i18n="opt-all-classes">Toàn trường</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card stat-total">
+                        <div class="stat-info">
+                            <h3 data-i18n="stat-total-kids">Tổng số bé yêu</h3>
+                            <div id="stat-total-val" class="stat-value">0</div>
+                        </div>
+                        <div class="stat-icon"><i class="fa-solid fa-baby-carriage"></i></div>
+                    </div>
+                    <div class="stat-card stat-present">
+                        <div class="stat-info">
+                            <h3 data-i18n="stat-present-kids">Bé đang ở lớp</h3>
+                            <div id="stat-present-val" class="stat-value">0</div>
+                        </div>
+                        <div class="stat-icon"><i class="fa-solid fa-house-user"></i></div>
+                    </div>
+                    <div class="stat-card stat-late">
+                        <div class="stat-info">
+                            <h3 data-i18n="stat-pickup-kids">Bé đã đón về</h3>
+                            <div id="stat-late-val" class="stat-value">0</div>
+                        </div>
+                        <div class="stat-icon"><i class="fa-solid fa-person-walking-arrow-loop-left"></i></div>
+                    </div>
+                    <div class="stat-card stat-absent">
+                        <div class="stat-info">
+                            <h3 data-i18n="stat-absent-kids">Bé chưa đến lớp</h3>
+                            <div id="stat-absent-val" class="stat-value">0</div>
+                        </div>
+                        <div class="stat-icon"><i class="fa-solid fa-circle-minus"></i></div>
+                    </div>
+                </div>
+
+                <div class="dashboard-analysis-wrapper">
+                    <!-- Bảng hoạt động gần nhất -->
+                    <div class="card-panel" style="margin-bottom: 0;">
+                        <div class="panel-title">
+                            <span><i class="fa-solid fa-clock-rotate-left" style="color: var(--primary); margin-right: 8px;"></i><span data-i18n="dash-recent-activities">Hoạt động đưa đón gần nhất</span></span>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="th-time">Thời gian</th>
+                                    <th data-i18n="th-child">Bé yêu</th>
+                                    <th data-i18n="th-class">Lớp</th>
+                                    <th data-i18n="th-parent">Thông tin Phụ huynh</th>
+                                    <th data-i18n="th-status">Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-logs-table-body">
+                                <!-- Dữ liệu logs tự động đổ ở đây -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Biểu đồ tròn tỉ lệ điểm danh -->
+                    <div class="card-panel" style="margin-bottom: 0;">
+                        <div class="panel-title"><i class="fa-solid fa-chart-pie" style="color: var(--primary); margin-right: 8px;"></i><span data-i18n="dash-chart-title">Tỉ lệ có mặt hôm nay</span></div>
+                        <div class="pie-chart-box">
+                            <div class="svg-pie-chart">
+                                <svg width="180" height="180" viewBox="0 0 180 180">
+                                    <circle class="circle-bg" cx="90" cy="90" r="70"></circle>
+                                    <circle id="dash-pie-circle" class="circle-val" cx="90" cy="90" r="70" stroke-dasharray="440" stroke-dashoffset="440"></circle>
+                                </svg>
+                                <div class="chart-center-text">
+                                    <span class="percent" id="dash-pie-percent">0%</span>
+                                    <span class="label" data-i18n="pie-label">Có mặt</span>
+                                </div>
+                            </div>
+                            <div class="chart-legend">
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: var(--success);"></div>
+                                    <span data-i18n="legend-present">Ở lớp / Đã về</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: var(--border);"></div>
+                                    <span data-i18n="legend-absent">Chưa đến</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. SECTION: LIVE ATTENDANCE -->
+            <section id="page-live-attendance" class="app-page" style="display: none;">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title" data-i18n="live-header">Điểm danh & Giám sát Camera Live</h1>
+                        <p style="color: var(--text-light);" data-i18n="live-subtitle">Kết nối Camera AI nhận diện khuôn mặt và kiểm soát an toàn đưa đón trẻ em</p>
+                    </div>
+                    <div class="page-actions" style="gap: 12px; align-items: center;">
+                        <select id="live-class-selector" class="form-input" style="width: 180px; height: 42px; font-weight: 700;" onchange="changeLiveClass()">
+                            <!-- Load danh sách lớp -->
+                        </select>
+                        <button id="btn-simulate-in" class="btn btn-primary"><i class="fa-solid fa-right-to-bracket"></i> <span data-i18n="btn-sim-in">Bé đến lớp</span></button>
+                        <button id="btn-simulate-out" class="btn btn-secondary" style="border: 2px solid var(--info); color: var(--info);"><i class="fa-solid fa-right-from-bracket"></i> <span data-i18n="btn-sim-out">Đón bé về</span></button>
+                    </div>
+                </div>
+
+                <div class="latest-checkin-wrapper">
+                    <!-- CAMERA LIVESTREAM -->
+                    <div class="card-panel" style="margin-bottom: 0;">
+                        <div class="panel-title"><i class="fa-solid fa-video" style="color: var(--primary); margin-right: 8px;"></i><span data-i18n="live-cam-title">Camera luồng trực tuyến (ESP32-CAM)</span></div>
+                        <div class="camera-preview-box" style="min-height: 380px; display: flex; align-items: center; justify-content: center; background: #000; overflow: hidden; position: relative;">
+                            <div class="live-badge"><i class="fa-solid fa-circle"></i> <span data-i18n="live-badge-txt">CAMERA ĐANG BẬT</span></div>
+                            <img id="real-camera-feed" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;" onerror="handleCameraError()">
+                            <div class="video-feed-placeholder" id="video-feed" style="min-height: 380px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;">
+                                <i class="fa-solid fa-video-slash" style="font-size: 5rem; color: var(--primary-light); margin-bottom: 15px;"></i>
+                                <p style="font-weight: 600; font-size: 1.1rem;" data-i18n="live-mjpeg">Đang tải luồng video ESP32-CAM...</p>
+                                <span id="camera-stream-info" style="font-size: 0.85rem; color: #CBD5E1; background: rgba(0,0,0,0.6); padding: 4px 12px; border-radius: 30px;"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- WELCOME BANNER (NHẬN DIỆN KHẨN CẤP) -->
+                    <div id="latest-welcome-card" class="welcome-panel">
+                        <div class="speech-bubble"><i class="fa-solid fa-volume-high"></i> <span data-i18n="voice-ai-on">Giọng nói AI: Bật</span></div>
+                        <div class="welcome-avatar-container">
+                            <img id="welcome-photo" src="https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=150&auto=format&fit=crop" class="welcome-avatar" alt="Avatar bé">
+                            <div id="welcome-badge" class="welcome-status-badge welcome-status-present"><i class="fa-solid fa-check"></i></div>
+                        </div>
+                        <div class="welcome-title" id="welcome-name">Chào mừng bé yêu!</div>
+                        <p style="color: var(--text-light); font-size: 0.95rem; margin-bottom: 12px;" id="welcome-status-text">Đang chờ camera nhận diện khuôn mặt bé...</p>
+                        
+                        <div class="welcome-detail-grid">
+                            <div class="welcome-detail-item">
+                                <span data-i18n="w-code">Mã bé:</span>
+                                <strong id="welcome-code">-</strong>
+                            </div>
+                            <div class="welcome-detail-item">
+                                <span data-i18n="w-class">Lớp học:</span>
+                                <strong id="welcome-class">-</strong>
+                            </div>
+                            <div class="welcome-detail-item" style="grid-column: span 2;">
+                                <span data-i18n="w-parent">Phụ huynh đưa đón:</span>
+                                <strong id="welcome-parent">-</strong>
+                            </div>
+                            <div class="welcome-detail-item">
+                                <span data-i18n="w-phone">SĐT Phụ huynh:</span>
+                                <strong id="welcome-phone">-</strong>
+                            </div>
+                            <div class="welcome-detail-item">
+                                <span data-i18n="w-time">Thời gian ghi nhận:</span>
+                                <strong id="welcome-time">-</strong>
+                            </div>
+                            <div class="health-badge" id="welcome-health-badge">
+                                <i class="fa-solid fa-heart-pulse"></i> <span data-i18n="w-health-prefix">Ghi chú sức khỏe:</span> <span id="welcome-health">Bình thường</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-panel">
+                    <div class="panel-title" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fa-solid fa-grip" style="color: var(--primary); margin-right: 8px;"></i><span data-i18n="live-grid-title">Danh sách Thẻ trạng thái các bé lớp mẫu giáo</span></span>
+                        <span style="font-size: 0.8rem; color: var(--text-light); font-weight: normal;" data-i18n="override-tip">* Giáo viên bấm trực tiếp vào Thẻ bé để điểm danh thủ công (Manual Override)</span>
+                    </div>
+                    <div id="live-attendance-grid" class="attendance-grid cols-4">
+                        <!-- Cards học sinh sẽ đổ ở đây -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. SECTION: CLASS & STUDENT -->
+            <section id="page-student-management" class="app-page" style="display: none;">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title" data-i18n="cs-header">Quản lý Lớp & Học Sinh</h1>
+                        <p style="color: var(--text-light);" data-i18n="cs-subtitle">Quản lý cấu hình lớp, độ tuổi, thông tin bé và đăng ký dữ liệu khuôn mặt AI</p>
+                    </div>
+                </div>
+
+                <!-- TABS CONTAINER -->
+                <div class="tab-header">
+                    <button class="tab-btn active" onclick="switchClassStudentTab('tab-classes')" id="btn-tab-classes" data-i18n="tab-classes">Lớp học Mầm non</button>
+                    <button class="tab-btn" onclick="switchClassStudentTab('tab-students')" id="btn-tab-students" data-i18n="tab-students">Hồ Sơ Các Bé</button>
+                </div>
+
+                <!-- TAB: LỚP HỌC -->
+                <div id="tab-classes" class="tab-pane active">
+                    <div class="card-panel">
+                        <div class="panel-title" style="display: flex; justify-content: space-between; align-items: center;">
+                            <span><i class="fa-solid fa-school" style="color: var(--primary); margin-right: 8px;"></i><span data-i18n="classes-table-title">Danh sách lớp học của trường</span></span>
+                            <button id="btn-add-class" class="btn btn-primary admin-only" onclick="openClassModal()"><i class="fa-solid fa-plus"></i> <span data-i18n="btn-add-cls">Tạo lớp mới</span></button>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="th-classname">Tên lớp học</th>
+                                    <th data-i18n="th-total-kids">Số lượng bé yêu</th>
+                                    <th data-i18n="th-class-time">Giờ đón & Giờ trễ</th>
+                                    <th data-i18n="th-age-desc">Độ tuổi / Mô tả</th>
+                                    <th class="admin-only" data-i18n="th-action">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="class-list-tbody">
+                                <!-- Danh sách lớp -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB: HỌC SINH -->
+                <div id="tab-students" class="tab-pane">
+                    <div class="card-panel">
+                        <div class="panel-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <span><i class="fa-solid fa-children" style="color: var(--primary); margin-right: 8px;"></i><span data-i18n="students-table-title">Danh sách hồ sơ các bé</span></span>
+                                <select id="student-class-filter" class="form-input" style="width: 160px; height: 38px; font-weight: 700;" onchange="filterStudentsTable()">
+                                    <!-- Options lớp -->
+                                </select>
+                            </div>
+                            <button id="btn-add-student" class="btn btn-primary admin-only" onclick="openStudentModal()"><i class="fa-solid fa-user-plus"></i> <span data-i18n="btn-add-kid">Đăng ký bé mới</span></button>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="th-kidcode">Mã số bé</th>
+                                    <th data-i18n="th-kidname">Họ và Tên Bé</th>
+                                    <th data-i18n="th-kidclass">Lớp học</th>
+                                    <th data-i18n="th-kidparent">Phụ huynh & SĐT</th>
+                                    <th data-i18n="th-kidphoto">Ảnh nhận diện</th>
+                                    <th class="admin-only" data-i18n="th-action">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="student-list-tbody">
+                                <!-- Dữ liệu học sinh -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. SECTION: ANALYTICS & REPORTS -->
+            <section id="page-attendance-report" class="app-page" style="display: none;">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title" data-i18n="rep-header">Thống Kê & Xuất Báo Cáo</h1>
+                        <p style="color: var(--text-light);" data-i18n="rep-subtitle">Phân tích xu hướng chuyên cần, tra cứu nhật ký và kết xuất dữ liệu phục vụ lưu trữ</p>
+                    </div>
+                    <div class="page-actions">
+                        <button id="btn-export-excel" class="btn btn-secondary" style="border: 1px solid var(--success); color: var(--success);"><i class="fa-solid fa-file-excel"></i> <span data-i18n="btn-export">Xuất Excel</span></button>
+                    </div>
+                </div>
+
+                <div class="card-panel">
+                    <div style="display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 180px;">
+                            <label style="display:block; margin-bottom: 6px; font-size:0.85rem; color:var(--text-light); font-weight: 700;" data-i18n="lbl-class-filter">Lọc theo lớp học</label>
+                            <select id="filter-class" class="form-input">
+                                <option value="all">Tất cả các lớp</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1; min-width: 180px;">
+                            <label style="display:block; margin-bottom: 6px; font-size:0.85rem; color:var(--text-light); font-weight: 700;" data-i18n="lbl-time-filter">Thời gian tìm kiếm</label>
+                            <select id="filter-range" class="form-input">
+                                <option value="today" data-i18n="opt-today">Hôm nay</option>
+                                <option value="week" data-i18n="opt-week">Tuần này</option>
+                                <option value="month" data-i18n="opt-month">Tháng này</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1; min-width: 180px; display:flex; align-items:flex-end;">
+                            <button id="btn-apply-filter" class="btn btn-primary" style="width:100%;"><i class="fa-solid fa-filter"></i> <span data-i18n="btn-apply">Áp dụng lọc</span></button>
+                        </div>
+                    </div>
+
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th data-i18n="th-date">Ngày ghi nhận</th>
+                                <th data-i18n="th-time">Thời gian</th>
+                                <th data-i18n="th-code">Mã số bé</th>
+                                <th data-i18n="th-name">Họ tên bé</th>
+                                <th data-i18n="th-class">Lớp</th>
+                                <th data-i18n="th-parent-phone">Liên hệ Phụ huynh</th>
+                                <th data-i18n="th-act-status">Trạng thái hoạt động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="report-table-tbody">
+                            <!-- Dữ liệu lịch sử điểm danh -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECTION: STATISTICS -->
+            <section id="page-statistics" class="app-page" style="display: none;">
+                <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; margin-bottom: 24px;">
+                    <div>
+                        <h1 class="page-title" data-i18n="stat-header">Báo cáo & Phân tích Chuyên Cần</h1>
+                        <p style="color: var(--text-light);" data-i18n="stat-subtitle">Xem tỉ lệ đi học, bé trễ và tình hình chuyên cần trực quan</p>
+                    </div>
+                    <!-- Lọc khoảng thời gian và lọc lớp -->
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                        <div>
+                            <label style="font-weight:700; color:var(--text-light); font-size:0.85rem; display:block; margin-bottom:4px;" data-i18n="lbl-class-filter">Lọc theo lớp học</label>
+                            <select id="stat-class-select" class="form-input" style="width: 160px; height: 38px;" onchange="loadStatisticsView()">
+                                <option value="all" data-i18n="opt-all-classes">Toàn trường</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-weight:700; color:var(--text-light); font-size:0.85rem; display:block; margin-bottom:4px;" data-i18n="lbl-start-date">Từ ngày</label>
+                            <input type="date" id="stat-start-date" class="form-input" style="width: 150px; height: 38px;" onchange="loadStatisticsView()">
+                        </div>
+                        <div>
+                            <label style="font-weight:700; color:var(--text-light); font-size:0.85rem; display:block; margin-bottom:4px;" data-i18n="lbl-end-date">Đến ngày</label>
+                            <input type="date" id="stat-end-date" class="form-input" style="width: 150px; height: 38px;" onchange="loadStatisticsView()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 30px;">
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h3 data-i18n="stat-ontime-rate">Tỷ lệ đi học đúng giờ</h3>
+                            <div id="stat-rate-ontime" class="stat-value">0%</div>
+                        </div>
+                        <div class="stat-icon" style="background:rgba(46, 196, 182, 0.1); color:var(--success);"><i class="fa-solid fa-face-grin-stars"></i></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h3 data-i18n="stat-late-rate">Tỷ lệ đi học muộn</h3>
+                            <div id="stat-rate-late" class="stat-value">0%</div>
+                        </div>
+                        <div class="stat-icon" style="background:rgba(78, 168, 222, 0.1); color:var(--info);"><i class="fa-solid fa-clock"></i></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h3 data-i18n="stat-absent-rate">Tỷ lệ vắng học</h3>
+                            <div id="stat-rate-absent" class="stat-value">0%</div>
+                        </div>
+                        <div class="stat-icon" style="background:rgba(255, 94, 98, 0.1); color:var(--danger);"><i class="fa-solid fa-face-frown-open"></i></div>
+                    </div>
+                </div>
+
+                <div class="card-panel">
+                    <div class="panel-title"><i class="fa-solid fa-chart-column" style="color: var(--primary); margin-right: 8px;"></i><span data-i18n="stat-chart-bar-title">Tỷ lệ chuyên cần của từng lớp học (%)</span></div>
+                    <div id="statistics-chart-container" class="chart-container">
+                        <!-- Biểu đồ cột tự vẽ bằng CSS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 7. SECTION: ROLE MANAGEMENT -->
+            <section id="page-role-management" class="app-page" style="display: none;">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title" data-i18n="roles-header">Phân Quyền & Quản Lý Vai Trò</h1>
+                        <p style="color: var(--text-light);" data-i18n="roles-subtitle">Gán lớp quản lý cho giáo viên và liên kết tài khoản phụ huynh với học sinh</p>
+                    </div>
+                </div>
+
+                <div class="tab-header">
+                    <button class="tab-btn active" onclick="switchRoleTab('tab-teacher-roles')" id="btn-tab-teacher-roles" data-i18n="tab-teachers">Phân Quyền Giáo Viên</button>
+                    <button class="tab-btn" onclick="switchRoleTab('tab-parent-roles')" id="btn-tab-parent-roles" data-i18n="tab-parents">Liên Kết Phụ Huynh</button>
+                </div>
+
+                <!-- Phân quyền Giáo viên -->
+                <div id="tab-teacher-roles" class="tab-pane active">
+                    <div class="card-panel">
+                        <div class="panel-title"><i class="fa-solid fa-user-tie" style="color: var(--primary); margin-right: 8px;"></i><span data-i18n="teachers-assigned-title">Danh sách giáo viên và Lớp quản lý</span></div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="th-teacher">Giáo viên</th>
+                                    <th data-i18n="th-phone">Số điện thoại</th>
+                                    <th data-i18n="th-assigned-classes">Lớp học quản lý (Chọn gán quyền)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teacher-roles-tbody">
+                                <!-- Load các giáo viên và checkbox chọn lớp -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Liên kết Phụ huynh -->
+                <div id="tab-parent-roles" class="tab-pane">
+                    <div class="card-panel" style="margin-bottom: 24px;">
+                        <div class="panel-title"><i class="fa-solid fa-user-plus" style="color: var(--primary); margin-right: 8px;"></i><span data-i18n="link-parent-title">Tạo liên kết phụ huynh mới</span></div>
+                        <form id="parent-link-form" onsubmit="handleParentLinkSubmit(event)" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <label style="display:block; margin-bottom:6px; font-weight:700; font-size:0.85rem;" data-i18n="lbl-parent-phone">SĐT Phụ huynh</label>
+                                <input type="text" id="link-parent-phone" class="form-input" placeholder="Ví dụ: 0901234567" required>
+                            </div>
+                            <div style="flex: 1; min-width: 200px;">
+                                <label style="display:block; margin-bottom:6px; font-weight:700; font-size:0.85rem;" data-i18n="lbl-select-kid">Bé học sinh cần liên kết</label>
+                                <select id="link-student-id" class="form-input" required>
+                                    <!-- Load danh sách bé -->
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="height: 52px;"><i class="fa-solid fa-link"></i> <span data-i18n="btn-link">Liên kết con</span></button>
+                        </form>
+                    </div>
+
+                    <div class="card-panel">
+                        <div class="panel-title"><i class="fa-solid fa-users-line" style="color: var(--primary); margin-right: 8px;"></i><span data-i18n="linked-parents-title">Danh sách Phụ huynh và Bé được theo dõi</span></div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="th-parent-phone-lbl">SĐT Phụ Huynh</th>
+                                    <th data-i18n="th-child-info">Tên Bé & Mã Bé liên kết</th>
+                                    <th data-i18n="th-action">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="parent-links-tbody">
+                                <!-- Dữ liệu liên kết phụ huynh -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 8. SECTION: SETTINGS -->
+            <section id="page-settings" class="app-page" style="display: none;">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title" data-i18n="set-header">Cấu hình Hệ Thống</h1>
+                        <p style="color: var(--text-light);" data-i18n="set-subtitle">Cấu hình các tùy chọn hiển thị, chế độ giao diện, ngôn ngữ và bố cục điểm danh</p>
+                    </div>
+                </div>
+
+                <div class="card-panel">
+                    <h3 style="margin-bottom: 20px; font-size: 1.15rem; border-bottom: 1px solid var(--border); padding-bottom: 10px; color: var(--primary);"><i class="fa-solid fa-paint-roller" style="margin-right: 8px;"></i><span data-i18n="set-visual-group">Cấu hình hiển thị Giao diện (UI/UX Customization)</span></h3>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 20px; max-width: 500px;">
+                        <!-- Chế độ giao diện -->
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="display:block; color:var(--text);" data-i18n="set-theme-mode">Chế độ giao diện (Theme Mode)</strong>
+                                <span style="font-size:0.85rem; color:var(--text-light);" data-i18n="set-theme-desc">Chuyển đổi giao diện sáng tối bảo vệ mắt</span>
+                            </div>
+                            <select id="setting-theme" class="form-input" style="width: 160px;" onchange="changeThemeSetting()">
+                                <option value="light" data-i18n="opt-theme-light">Light Mode (Sáng)</option>
+                                <option value="dark" data-i18n="opt-theme-dark">Dark Mode (Tối)</option>
+                            </select>
+                        </div>
+
+                        <!-- Cấu hình Bố cục Live Grid -->
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="display:block; color:var(--text);" data-i18n="set-layout">Bố cục Live Attendance (Layout Grid)</strong>
+                                <span style="font-size:0.85rem; color:var(--text-light);" data-i18n="set-layout-desc">Số lượng cột hiển thị trong danh sách bé</span>
+                            </div>
+                            <select id="setting-grid" class="form-input" style="width: 160px;" onchange="changeGridLayoutSetting()">
+                                <option value="4" data-i18n="opt-grid-4">Lưới 4 Cột</option>
+                                <option value="5" data-i18n="opt-grid-5">Lưới 5 Cột</option>
+                                <option value="auto" data-i18n="opt-grid-auto">Tự động co giãn</option>
+                            </select>
+                        </div>
+
+                        <!-- Cấu hình Ngôn ngữ -->
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="display:block; color:var(--text);" data-i18n="set-lang">Cấu hình Ngôn ngữ (Language)</strong>
+                                <span style="font-size:0.85rem; color:var(--text-light);" data-i18n="set-lang-desc">Chọn ngôn ngữ hiển thị trên toàn ứng dụng</span>
+                            </div>
+                            <select id="setting-lang" class="form-input" style="width: 160px;" onchange="changeLanguageSetting()">
+                                <option value="vi">Tiếng Việt</option>
+                                <option value="en">English</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API & TIME SETTINGS -->
+                <div class="card-panel admin-only">
+                    <!-- TRẠNG THÁI THIẾT BỊ PHẦN CỨNG -->
+                    <h3 style="margin-bottom: 20px; font-size: 1.15rem; border-bottom: 1px solid var(--border); padding-bottom: 10px; color: var(--primary);"><i class="fa-solid fa-network-wired" style="margin-right: 8px;"></i><span data-i18n="set-ai-con">Cài đặt thiết bị & Kết nối phần cứng</span></h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 24px;">
+                        <div class="form-group">
+                            <label for="setting-start-time" style="font-weight:700; color:var(--text-light); font-size:0.85rem; display:block; margin-bottom:6px;">Giờ mở cửa đón trẻ</label>
+                            <input type="time" id="setting-start-time" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="setting-late-time" style="font-weight:700; color:var(--text-light); font-size:0.85rem; display:block; margin-bottom:6px;">Giờ bắt đầu đi muộn</label>
+                            <input type="time" id="setting-late-time" class="form-input">
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label for="setting-ai-endpoint" style="font-weight:700; color:var(--text-light); font-size:0.85rem; display:block; margin-bottom:6px;">API Server Nhận Diện AI Endpoint</label>
+                            <input type="text" id="setting-ai-endpoint" class="form-input" placeholder="http://192.168.1.50:5000/api/recognize">
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label for="setting-esp32-stream" style="font-weight:700; color:var(--text-light); font-size:0.85rem; display:block; margin-bottom:6px;">Luồng Video ESP32-CAM MJPEG Stream URL</label>
+                            <input type="text" id="setting-esp32-stream" class="form-input" placeholder="http://192.168.1.100/stream">
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap: 15px; margin-bottom: 24px; flex-wrap: wrap;">
+                        <!-- ESP32-CAM Status -->
+                        <div style="flex:1; min-width: 220px; background: rgba(0,0,0,0.02); padding: 12px 16px; border-radius: 12px; border: 1.5px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="display:block; color:var(--text); font-size:0.9rem;" data-i18n="set-esp-cam">Camera ESP32-CAM</strong>
+                                <span style="font-size:0.75rem; color:var(--text-light);">IP: 192.168.1.100</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span id="status-esp-cam" class="status-badge" style="background:#FFEBEB; color:#FF3B30; padding:4px 10px; border-radius:20px; font-size:0.8rem; font-weight:800; border:1px solid rgba(255,59,48,0.15); cursor:pointer;" ondblclick="toggleEspCamDemo()" title="Nhấp đúp chuột để giả lập bật/tắt">Offline</span>
+                                <button class="btn btn-secondary" onclick="checkEspCamConnection()" style="padding: 4px 8px; font-size: 0.75rem; min-height: unset; height: auto;" title="Kiểm tra kết nối"><i class="fa-solid fa-arrows-rotate"></i></button>
+                            </div>
+                        </div>
+                        <!-- AI-Server Status -->
+                        <div style="flex:1; min-width: 220px; background: rgba(0,0,0,0.02); padding: 12px 16px; border-radius: 12px; border: 1.5px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="display:block; color:var(--text); font-size:0.9rem;" data-i18n="set-ai-server">AI Recognition Server</strong>
+                                <span style="font-size:0.75rem; color:var(--text-light);" id="ai-server-ip-label">Port: 5000</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span id="status-ai-server" class="status-badge" style="background:#FFEBEB; color:#FF3B30; padding:4px 10px; border-radius:20px; font-size:0.8rem; font-weight:800; border:1px solid rgba(255,59,48,0.15); cursor:pointer;" ondblclick="toggleAiServerDemo()" title="Nhấp đúp chuột để giả lập bật/tắt">Offline</span>
+                                <button class="btn btn-secondary" onclick="checkAiServerConnection()" style="padding: 4px 8px; font-size: 0.75rem; min-height: unset; height: auto;" title="Kiểm tra kết nối"><i class="fa-solid fa-arrows-rotate"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 30px; display: flex; justify-content: flex-end;">
+                        <button id="btn-save-settings" class="btn btn-primary" onclick="saveSettings()"><i class="fa-solid fa-floppy-disk"></i> <span data-i18n="btn-save-settings">Lưu cấu hình</span></button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 9. PARENT TRACKING HUB (TRANG THEO DÕI CỦA PHỤ HUYNH) -->
+    <div id="parent-tracking-page" class="landing-wrapper" style="display: none; padding-bottom: 60px;">
+        <header class="landing-header">
+            <div class="landing-logo">
+                <i class="fa-solid fa-face-laugh-beam"></i> KidCheck <span style="font-size: 14px; font-weight: 600; padding: 4px 10px; background: #FFF0F2; color: var(--primary); border-radius: 20px; margin-left: 10px;" data-i18n="parent-badge">Cổng Phụ Huynh</span>
+            </div>
+            <div class="landing-nav">
+                <span style="font-weight: 700; color: var(--text); margin-right: 15px;"><i class="fa-solid fa-circle-user" style="color: var(--primary);"></i> PH: <span id="parent-display-phone">0901234567</span></span>
+                <button class="btn btn-secondary" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> <span data-i18n="btn-logout">Đăng xuất</span></button>
+            </div>
+        </header>
+
+        <main style="padding: 30px 8%; max-width: 1400px; margin: 0 auto; width: 100%;">
+            <div style="margin-bottom: 30px;">
+                <h1 style="font-size: 32px; font-weight: 900; color: var(--text);" data-i18n="parent-welcome-title">Nhật ký đi học của bé</h1>
+                <p style="color: var(--text-light);" data-i18n="parent-welcome-subtitle">Giám sát hình ảnh AI thực tế đưa đón bé yêu của bạn</p>
+            </div>
+
+            <!-- BỐ CỤC CHÍNH CỦA PHỤ HUYNH -->
+            <div class="latest-checkin-wrapper" style="grid-template-columns: 1fr 1.2fr;">
+                
+                <!-- TRẠNG THÁI REAL-TIME VÀ BẰNG CHỨNG XÁC THỰC -->
+                <div class="welcome-panel" style="justify-content: flex-start; text-align: left; padding: 28px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom: 20px;">
+                        <h3 style="font-size: 18px; font-weight: 800; color: var(--primary-dark);" data-i18n="parent-today-status">Trạng thái bé hôm nay</h3>
+                        <span id="parent-kid-status-badge" class="student-status-badge">Đang ở lớp</span>
+                    </div>
+
+                    <div style="display: flex; gap: 20px; align-items: center; margin-bottom: 24px; width: 100%; background: rgba(255,255,255,0.5); padding: 16px; border-radius: 18px;">
+                        <img id="parent-kid-photo" src="https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=150&auto=format&fit=crop" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                        <div>
+                            <div style="font-size: 18px; font-weight: 800; color: var(--text);" id="parent-kid-name">Nguyễn Gia Bảo</div>
+                            <div style="font-size: 13px; color: var(--text-light);" id="parent-kid-class">Lớp: Mầm 1</div>
+                            <div style="font-size: 13px; color: var(--text-light); margin-top: 4px;"><i class="fa-solid fa-heart-pulse" style="color:var(--primary); margin-right:3px;"></i><span id="parent-kid-health">Bình thường</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Ảnh bằng chứng từ AI Camera -->
+                    <div style="width: 100%; margin-bottom: 20px;">
+                        <strong style="display:block; margin-bottom:10px; font-size:14px; color:var(--text);" data-i18n="parent-evidence-title">Bằng chứng xác thực (Ảnh chụp thực tế lúc đưa đón)</strong>
+                        <div style="width:100%; height:200px; border-radius: 16px; overflow:hidden; position:relative; background: #0D0C15; border: 2px solid white; box-shadow: var(--shadow);">
+                            <img id="parent-evidence-photo" src="https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=150&auto=format&fit=crop" style="width:100%; height:100%; object-fit: cover;">
+                            <div style="position:absolute; bottom: 10px; left:10px; background: rgba(0,0,0,0.6); color:white; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700;" id="parent-evidence-time">
+                                <i class="fa-solid fa-camera" style="margin-right:4px;"></i> 07:32
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Thông tin cha mẹ nhận được SMS -->
+                    <div style="width: 100%; font-size: 13px; color: var(--text-light); border-top: 1.5px solid var(--border); padding-top: 15px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-circle-check" style="color: var(--success); font-size: 18px;"></i>
+                        <span data-i18n="parent-sms-notif">Một tin nhắn SMS thông báo thời gian điểm danh chi tiết đã được gửi tự động tới số điện thoại này lúc bé check-in thành công.</span>
+                    </div>
+                </div>
+
+                <!-- LỊCH SỬ CHUYÊN CẦN THÁNG (CALENDAR VIEW) -->
+                <div class="calendar-wrapper">
+                    <div class="calendar-header">
+                        <h3 style="font-size: 18px; font-weight: 800; color: var(--text);"><i class="fa-solid fa-calendar-days" style="color: var(--primary); margin-right: 8px;"></i><span data-i18n="calendar-title">Lịch Sử Đi Học Chi Tiết</span></h3>
+                        <span style="font-weight: 700; color: var(--primary);" id="parent-calendar-month">Tháng 06/2026</span>
+                    </div>
+                    <div class="calendar-grid" id="parent-calendar-grid">
+                        <!-- Tạo lịch tháng bằng JavaScript -->
+                    </div>
+                    <div class="chart-legend" style="margin-top: 20px; justify-content: flex-start; gap: 20px;">
+                        <div class="legend-item">
+                            <span class="calendar-dot dot-green" style="position:relative; bottom:0; display:inline-block; margin-right:5px;"></span> <span data-i18n="dot-ontime">Đúng giờ</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="calendar-dot dot-yellow" style="position:relative; bottom:0; display:inline-block; margin-right:5px;"></span> <span data-i18n="dot-late">Đi muộn</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="calendar-dot dot-red" style="position:relative; bottom:0; display:inline-block; margin-right:5px;"></span> <span data-i18n="dot-absent">Vắng mặt</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="calendar-dot dot-blue" style="position:relative; bottom:0; display:inline-block; margin-right:5px;"></span> <span data-i18n="dot-pickup">Đã đón về</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- MODALS: CHI TIẾT ĐĂNG KÝ HỌC SINH -->
+    <!-- (Trong tab học sinh, Admin có nút Đăng ký mới sẽ hiển thị modal này, hỗ trợ camera ESP32) -->
+    <!-- Bấm Chụp từ ESP32-Cam sẽ hiện một khung hình camera đếm ngược -->
+    <div id="student-capture-modal" class="modal-overlay">
+        <div class="modal-content" style="width: 450px; text-align: center;">
+            <h2 data-i18n="cap-title">Chụp hình từ ESP32-CAM</h2>
+            <div style="width: 100%; height: 260px; background: #0D0C15; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; position: relative; overflow: hidden; margin-bottom: 20px; border: 2px solid var(--border);">
+                <div id="cam-status" style="position: absolute; top: 15px; left: 15px; background: var(--success); color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                    <i class="fa-solid fa-link"></i> <span data-i18n="cam-connected">Đã kết nối</span>
+                </div>
+                <div id="shutter-countdown" style="font-size: 72px; font-weight: 900; color: var(--primary); display: none; text-shadow: 0 4px 12px rgba(0,0,0,0.4);">3</div>
+                
+                <i class="fa-solid fa-face-smile" id="cam-face-guide" style="font-size: 5rem; color: var(--primary-light);"></i>
+                <p id="cam-instruct" style="font-weight: 600; font-size: 0.95rem; margin-top: 15px;" data-i18n="cam-pos-face">Vui lòng đưa bé đứng thẳng trước ESP32-CAM</p>
+                <img id="simulated-capture-view" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+            </div>
+            <div class="modal-actions" style="justify-content: center;">
+                <button class="btn btn-secondary" onclick="closeCaptureModal()" data-i18n="btn-close">Đóng lại</button>
+                <button class="btn btn-primary" id="btn-trigger-shutter" onclick="triggerSimulatedCapture()"><i class="fa-solid fa-camera"></i> <span data-i18n="btn-snap">Bắt đầu Chụp</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CLASS MODAL -->
+    <div id="class-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="width: 450px;">
+            <h2 data-i18n="modal-add-class-title" style="margin-bottom: 20px;">Tạo Lớp Học Mới</h2>
+            <form id="class-form" onsubmit="handleClassSubmit(event)">
+                <div class="form-group">
+                    <label for="class-name" data-i18n="lbl-class-name-form">Tên lớp học</label>
+                    <input type="text" id="class-name" class="form-input" placeholder="Ví dụ: Mầm 1" required>
+                </div>
+                <div class="form-group">
+                    <label for="class-desc" data-i18n="lbl-class-desc-form">Độ tuổi / Mô tả</label>
+                    <input type="text" id="class-desc" class="form-input" placeholder="Ví dụ: 3 - 4 tuổi" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeClassModal()" data-i18n="btn-close">Đóng lại</button>
+                    <button type="submit" class="btn btn-primary" data-i18n="btn-save">Lưu thông tin</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CLASS TIME MODAL -->
+    <div id="class-time-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="width: 450px;">
+            <h2 id="class-time-modal-title" style="margin-bottom: 20px;">Chỉnh sửa giờ học lớp</h2>
+            <form id="class-time-form" onsubmit="handleClassTimeSubmit(event)">
+                <input type="hidden" id="class-time-target-name">
+                <div class="form-group">
+                    <label for="class-start-time">Giờ đón trẻ mở cửa</label>
+                    <input type="time" id="class-start-time" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="class-late-time">Giờ bắt đầu đi muộn</label>
+                    <input type="time" id="class-late-time" class="form-input" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeClassTimeModal()">Đóng lại</button>
+                    <button type="submit" class="btn btn-primary">Lưu cấu hình</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- STUDENT MODAL -->
+    <div id="student-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="width: 500px;">
+            <h2 id="student-modal-title" style="margin-bottom: 20px;">Đăng ký bé yêu mới</h2>
+            <input type="hidden" id="student-edit-id">
+            <form id="student-form" onsubmit="handleStudentSubmit(event)">
+                <div class="form-group">
+                    <label for="student-code" data-i18n="lbl-student-code-form">Mã số bé</label>
+                    <input type="text" id="student-code" class="form-input" placeholder="Ví dụ: HS005" required>
+                </div>
+                <div class="form-group">
+                    <label for="student-name" data-i18n="lbl-student-name-form">Họ và Tên bé</label>
+                    <input type="text" id="student-name" class="form-input" placeholder="Ví dụ: Nguyễn Gia Bảo" required>
+                </div>
+                <div class="form-group">
+                    <label for="student-class" data-i18n="lbl-student-class-form">Lớp học</label>
+                    <select id="student-class" class="form-input" required>
+                        <!-- Options sẽ nạp bằng JS -->
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="student-parent" data-i18n="lbl-student-parent-form">Tên phụ huynh</label>
+                        <input type="text" id="student-parent" class="form-input" placeholder="Nguyễn Văn A" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="student-phone" data-i18n="lbl-student-phone-form">Số điện thoại liên hệ</label>
+                        <input type="text" id="student-phone" class="form-input" placeholder="0901234567" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="student-health" data-i18n="lbl-student-health-form">Ghi chú sức khỏe (Dị ứng, bệnh lý...)</label>
+                    <input type="text" id="student-health" class="form-input" placeholder="Bình thường" value="Bình thường">
+                </div>
+                
+                <!-- BỔ SUNG: PHƯƠNG THỨC NẠP ẢNH (2 CÁCH: FILE UPLOAD VÀ CHỤP TRỰC TIẾP ESP32-CAM) -->
+                <div class="form-group">
+                    <label style="font-weight: 700;" data-i18n="lbl-reg-photo-mode">Phương thức nạp ảnh khuôn mặt</label>
+                    <select id="student-photo-mode" class="form-input" onchange="toggleStudentPhotoMode()">
+                        <option value="upload" data-i18n="opt-photo-upload">Tải lên tệp ảnh từ máy tính</option>
+                        <option value="esp32" data-i18n="opt-photo-esp32">Chụp trực tiếp từ ESP32-CAM</option>
+                    </select>
+                </div>
+                <div class="form-group" id="student-photo-file-group">
+                    <label for="student-photo-file" data-i18n="lbl-student-photo-file">Chọn tệp ảnh nhận diện</label>
+                    <input type="file" id="student-photo-file" class="form-input" accept="image/*">
+                </div>
+                <div class="form-group" id="student-photo-esp-group" style="display: none;">
+                    <label data-i18n="lbl-student-photo-esp">Khuôn mặt chụp từ camera</label>
+                    <button type="button" class="btn btn-secondary" style="width: 100%; height: 42px; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="openCaptureModalFromRegistration()"><i class="fa-solid fa-camera"></i> <span data-i18n="btn-open-camera-snap">Mở Camera ESP32-CAM để chụp</span></button>
+                    <span id="reg-photo-indicator" style="font-size: 0.8rem; color: var(--success); margin-top: 5px; display: none;"><i class="fa-solid fa-circle-check"></i> Đã chụp ảnh khuôn mặt thành công</span>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeStudentModal()" data-i18n="btn-close">Đóng lại</button>
+                    <button type="submit" class="btn btn-primary" data-i18n="btn-save">Lưu thông tin</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // Hệ thống Đa ngôn ngữ (Anh/Việt)
+        const translations = {
+            vi: {
+                "app-title": "KidCheck",
+                "btn-login-gate": "Đăng Nhập",
+                "hero-h1": "Vì Sự An Toàn Và Nụ Cười Của <span>Bé Yêu</span>",
+                "hero-p": "KidCheck là hệ thống điểm danh camera AI và quản lý đưa đón mầm non thông minh, giúp nhà trường và phụ huynh kết nối tức thời, an tâm gửi gắm con yêu.",
+                "gate-teacher": "Cán Bộ & Giáo Viên",
+                "gate-parent": "Phụ Huynh Học Sinh",
+                "slide-1-title": "Nhận Diện Khuôn Mặt AI",
+                "slide-1-desc": "Camera AI tự động điểm danh bé chỉ trong 0.5 giây khi bước vào sảnh trường.",
+                "slide-2-title": "Thông Báo Tức Thời",
+                "slide-2-desc": "SMS và ảnh chụp xác thực được gửi ngay cho phụ huynh khi bé vào lớp và ra về.",
+                "slide-3-title": "Đảm Bảo An Toàn Tuyệt Đối",
+                "slide-3-desc": "Kiểm soát chặt chẽ quy trình đưa đón, loại bỏ rủi ro bỏ quên hoặc nhầm lẫn bé.",
+                "pub-stats-title": "Hôm Nay Tại KidCheck",
+                "pub-stats-subtitle": "Thống kê hoạt động minh bạch của toàn trường trong ngày",
+                "pub-stat-kids": "Lượt Đưa Đón An Toàn",
+                "pub-stat-kids-desc": "Bé được đưa đón an toàn trong năm học",
+                "pub-stat-rate": "Tỷ Lệ Chuyên Cần",
+                "pub-stat-rate-desc": "Tỷ lệ bé đi học đều đặn trung bình tuần qua",
+                "pub-stat-cls": "Lớp Học Hoạt Động",
+                "pub-stat-cls-desc": "Lớp mầm non đang áp dụng camera AI",
+                "contact-h2": "Liên Hệ & Hỗ Trợ Kỹ Thuật",
+                "contact-p": "Nếu phụ huynh hoặc giáo viên gặp sự cố đăng nhập, lỗi camera nhận diện hoặc cần cấp lại tài khoản, vui lòng gửi thông tin hoặc gọi điện trực tiếp.",
+                "send-support-title": "Gửi Yêu Cầu Hỗ Trợ",
+                "label-fullname": "Họ tên của bạn",
+                "label-phone": "Số điện thoại",
+                "label-reprole": "Vai trò của bạn",
+                "opt-parent": "Phụ huynh học sinh",
+                "opt-teacher": "Giáo viên / Cán bộ",
+                "label-issue": "Nội dung cần hỗ trợ",
+                "btn-send-report": "Gửi Yêu Cầu Hỗ Trợ",
+                "login-subtitle": "Hệ thống điểm danh mầm non & quản lý đưa đón bé thông minh",
+                "login-acc-label": "Số điện thoại hoặc Tài khoản đăng nhập",
+                "login-pass-label": "Mật khẩu xác thực",
+                "login-tip": "Mẹo: Nhập admin, teacher, hoặc SĐT phụ huynh (ví dụ: 0901234567)",
+                "btn-back": "Quay lại",
+                "btn-login-submit": "Đăng Nhập",
+                "parent-badge": "Cổng Phụ Huynh",
+                "btn-logout": "Đăng xuất",
+                "parent-welcome-title": "Nhật ký đi học của bé yêu",
+                "parent-welcome-subtitle": "Giám sát hình ảnh camera AI thực tế và theo dõi ngày học của bé",
+                "parent-today-status": "Trạng thái hoạt động hôm nay",
+                "parent-evidence-title": "Bằng chứng xác thực (Ảnh camera AI lớp học)",
+                "parent-sms-notif": "Một tin nhắn SMS chi tiết đã được gửi tự động tới số điện thoại này khi bé điểm danh thành công.",
+                "calendar-title": "Lịch Sử Đi Học Chi Tiết",
+                "dot-ontime": "Đúng giờ",
+                "dot-late": "Đi muộn",
+                "dot-absent": "Vắng mặt",
+                "dot-pickup": "Đã đón về",
+                "dash-title": "Chào ngày mới cùng KidCheck! 👋",
+                "dash-subtitle": "Bảng theo dõi đưa đón và điểm danh các bé hôm nay -",
+                "stat-total-kids": "Tổng số học sinh",
+                "stat-present-kids": "Bé đã điểm danh",
+                "stat-pickup-kids": "Bé đi học muộn",
+                "stat-absent-kids": "Bé vắng mặt",
+                "dash-recent-activities": "Hoạt động đưa đón gần nhất",
+                "th-time": "Thời gian",
+                "th-child": "Bé yêu",
+                "th-class": "Lớp",
+                "th-parent": "Thông tin Phụ huynh",
+                "th-photo": "Ảnh camera",
+                "th-status": "Trạng thái",
+                "dash-chart-title": "Tỉ lệ chuyên cần hôm nay",
+                "pie-label": "Có mặt",
+                "legend-present": "Ở lớp / Đã đón về",
+                "legend-absent": "Chưa đến",
+                "live-header": "Điểm danh & Giám sát Camera Live",
+                "live-subtitle": "Kết nối Camera AI nhận diện khuôn mặt và kiểm soát an toàn đưa đón trẻ em",
+                "btn-sim-in": "Bé đến lớp (Check-in)",
+                "btn-sim-out": "Đón bé về (Check-out)",
+                "live-cam-title": "Camera luồng trực tuyến (ESP32-CAM)",
+                "live-badge-txt": "CAMERA LIVE STREAM",
+                "live-mjpeg": "MJPEG Stream Active",
+                "w-code": "Mã bé:",
+                "w-class": "Lớp học:",
+                "w-parent": "Phụ huynh đưa đón:",
+                "w-phone": "SĐT Phụ huynh:",
+                "w-time": "Thời gian ghi nhận:",
+                "w-health-prefix": "Ghi chú sức khỏe:",
+                "live-grid-title": "Danh sách thẻ trạng thái các bé lớp mẫu giáo",
+                "override-tip": "* Giáo viên có thể bấm trực tiếp vào thẻ bé để chỉnh sửa trạng thái thủ công (Manual Override)",
+                "cs-header": "Hồ sơ các bé & Cấu hình Lớp học",
+                "cs-subtitle": "Cài đặt thông tin lớp mầm non, quản lý danh sách học sinh và khuôn mặt AI",
+                "tab-classes": "Lớp học Mầm non",
+                "tab-students": "Hồ Sơ Các Bé Yêu",
+                "classes-table-title": "Danh sách lớp học mẫu giáo",
+                "btn-add-class": "Tạo lớp mới",
+                "th-classname": "Tên lớp học",
+                "th-total-kids": "Sĩ số lớp",
+                "th-age-desc": "Độ tuổi mầm non",
+                "th-action": "Hành động",
+                "students-table-title": "Danh sách học sinh lớp mầm non",
+                "btn-add-student": "Đăng ký bé mới",
+                "th-kidcode": "Mã bé",
+                "th-kidname": "Họ và Tên",
+                "th-kidclass": "Lớp học",
+                "th-kidparent": "Phụ huynh & Số điện thoại",
+                "th-kidhealth": "Sức khỏe",
+                "th-kidphoto": "Ảnh khuôn mặt",
+                "rep-header": "Báo cáo & Lịch sử Đưa Đón",
+                "rep-subtitle": "Xem lịch sử điểm danh vào lớp và đón bé về, lọc theo ngày/tuần/tháng",
+                "btn-export": "Xuất Báo cáo Excel",
+                "lbl-class-filter": "Lọc theo lớp học",
+                "lbl-time-filter": "Thời gian tìm kiếm",
+                "opt-today": "Hôm nay",
+                "opt-week": "Tuần này",
+                "opt-month": "Tháng này",
+                "btn-apply": "Áp dụng lọc",
+                "th-date": "Ngày ghi nhận",
+                "th-parent-phone": "Liên hệ cha mẹ",
+                "th-act-status": "Hành động ghi nhận",
+                "stat-header": "Phân Tích Chuyên Cần",
+                "stat-subtitle": "Thống kê tỷ lệ đi học, bé trễ và vắng mặt chi tiết",
+                "stat-ontime-rate": "Tỉ lệ bé đi học đúng giờ",
+                "stat-absent-rate": "Tỉ lệ bé vắng trung bình",
+                "stat-chart-bar-title": "Tình hình chuyên cần của các lớp học (%)",
+                "roles-header": "Phân Quyền Vai Trò",
+                "roles-subtitle": "Gán quyền phụ trách lớp cho giáo viên và liên kết phụ huynh theo dõi bé",
+                "tab-teachers": "Quyền Giáo Viên",
+                "tab-parents": "Liên Kết Phụ Huynh",
+                "teachers-assigned-title": "Gán quyền quản lý lớp cho Giáo viên",
+                "th-teacher": "Giáo viên chủ nhiệm",
+                "th-assigned-classes": "Lớp phụ trách gán quyền",
+                "link-parent-title": "Tạo liên kết phụ huynh mới",
+                "lbl-parent-phone": "SĐT di động phụ huynh",
+                "lbl-select-kid": "Bé học sinh liên kết (Con)",
+                "btn-link": "Tạo liên kết ngay",
+                "linked-parents-title": "Danh sách liên kết tài khoản",
+                "th-parent-phone-lbl": "SĐT Phụ huynh",
+                "th-child-info": "Thông tin Con yêu",
+                "set-header": "Cấu hình Hệ Thống",
+                "set-subtitle": "Tinh chỉnh giao diện hiển thị, cấu hình ngôn ngữ, bố cục lưới và giờ học mẫu giáo",
+                "set-visual-group": "Cấu hình hiển thị Giao diện (UI/UX Customization)",
+                "set-theme-mode": "Chế độ giao diện (Theme Mode)",
+                "set-theme-desc": "Bật chế độ giao diện Sáng hoặc Tối để bảo vệ mắt",
+                "opt-theme-light": "Light Mode (Sáng)",
+                "opt-theme-dark": "Dark Mode (Tối)",
+                "set-layout": "Bố cục Live Attendance (Layout Grid)",
+                "set-layout-desc": "Thiết lập lưới hiển thị thẻ của các bé (4 cột, 5 cột)",
+                "opt-grid-4": "Lưới 4 Cột",
+                "opt-grid-5": "Lưới 5 Cột",
+                "opt-grid-auto": "Tự động co giãn",
+                "set-lang": "Cấu hình Ngôn ngữ (Language)",
+                "set-lang-desc": "Chuyển đổi ngôn ngữ hiển thị Việt / Anh toàn hệ thống",
+                "set-school-time": "Cài đặt thời gian mầm non",
+                "lbl-start-time": "Giờ đón bé mở cửa",
+                "lbl-late-time": "Giờ bắt đầu đi muộn",
+                "set-ai-con": "Kết nối Camera AI & REST API Cloud",
+                "lbl-ai-url": "REST API Face Recognition Server Endpoint",
+                "lbl-hardware-status": "Trạng thái kết nối phần cứng",
+                "set-esp-cam": "Camera ESP32-CAM",
+                "set-ai-server": "AI Recognition Server",
+                "lbl-setting-voice": "Phát giọng nói chào mừng tiếng Việt tự động (AI TTS)",
+                "lbl-setting-sms": "Tự động gửi SMS báo cáo cho cha mẹ học sinh",
+                "btn-save-settings": "Lưu cấu hình",
+                "cap-title": "Chụp hình từ ESP32-CAM",
+                "cam-connected": "ESP32-CAM Sẵn Sàng",
+                "cam-pos-face": "Vui lòng hướng bé trước ống kính camera",
+                "btn-close": "Đóng lại",
+                "btn-snap": "Chụp Ảnh Ngay",
+                "lbl-reg-photo-mode": "Phương thức nạp ảnh khuôn mặt",
+                "opt-photo-upload": "Tải lên tệp ảnh từ máy tính",
+                "opt-photo-esp32": "Chụp trực tiếp từ ESP32-CAM",
+                "lbl-student-photo-file": "Chọn tệp ảnh nhận diện",
+                "lbl-student-photo-esp": "Khuôn mặt chụp từ camera",
+                "btn-open-camera-snap": "Mở Camera ESP32-CAM để chụp"
+            },
+            en: {
+                "app-title": "KidCheck",
+                "btn-login-gate": "Sign In",
+                "hero-h1": "For the Safety & Smile of <span>Your Children</span>",
+                "hero-p": "KidCheck is an intelligent AI camera attendance and preschool pickup management platform, providing instant connection and peace of mind for schools and parents.",
+                "gate-teacher": "Staff & Teachers Portal",
+                "gate-parent": "Parents Portal",
+                "slide-1-title": "AI Face Recognition",
+                "slide-1-desc": "AI cameras automatically take attendance of children in 0.5s as they enter the lobby.",
+                "slide-2-title": "Instant Notifications",
+                "slide-2-desc": "SMS notifications with verification photos are sent immediately to parents.",
+                "slide-3-title": "Absolute Safety",
+                "slide-3-desc": "Strict control over arrival and departure processes, avoiding any child neglect.",
+                "pub-stats-title": "Today at KidCheck",
+                "pub-stats-subtitle": "Transparent activity statistics of the school today",
+                "pub-stat-kids": "Safe Pickups Today",
+                "pub-stat-kids-desc": "Children checked in and out safely this semester",
+                "pub-stat-rate": "Attendance Rate",
+                "pub-stat-rate-desc": "Average attendance rate during the past week",
+                "pub-stat-cls": "Active AI Classes",
+                "pub-stat-cls-desc": "Preschool classes utilizing AI attendance",
+                "contact-h2": "Contact & Support Hub",
+                "contact-p": "If parents or teachers experience login issues, face camera recognition errors, or need a passcode reset, please submit a report or call us directly.",
+                "send-support-title": "Submit Support Request",
+                "label-fullname": "Full name",
+                "label-phone": "Phone number",
+                "label-reprole": "Your role",
+                "opt-parent": "Parent / Guardian",
+                "opt-teacher": "Teacher / Staff",
+                "label-issue": "Support description",
+                "btn-send-report": "Submit Request",
+                "login-subtitle": "AI-powered preschool attendance & secure pickup management system",
+                "login-acc-label": "Phone number or Username",
+                "login-pass-label": "Verification Passcode",
+                "login-tip": "Tip: Enter admin, teacher, or parent phone (e.g. 0901234567)",
+                "btn-back": "Go Back",
+                "btn-login-submit": "Login",
+                "parent-badge": "Parents Gate",
+                "btn-logout": "Sign Out",
+                "parent-welcome-title": "Child's Daily School Journal",
+                "parent-welcome-subtitle": "Monitor real-time AI photos and attendance logs of your children",
+                "parent-today-status": "Today's Status",
+                "parent-evidence-title": "AI Camera Captured Image (Verification Evidence)",
+                "parent-sms-notif": "A detailed SMS notification has been auto-delivered to this phone number upon successful check-in.",
+                "calendar-title": "Monthly Attendance History",
+                "dot-ontime": "On Time",
+                "dot-late": "Late",
+                "dot-absent": "Absent",
+                "dot-pickup": "Checked Out",
+                "dash-title": "Have a wonderful school day! 👋",
+                "dash-subtitle": "Today's arrival, pickup status and dashboard overview -",
+                "stat-total-kids": "Total Students",
+                "stat-present-kids": "Checked-in",
+                "stat-pickup-kids": "Late arrivals",
+                "stat-absent-kids": "Absent",
+                "dash-recent-activities": "Recent Pickups & Arrivals Activity Logs",
+                "th-time": "Time",
+                "th-child": "Child name",
+                "th-class": "Class",
+                "th-parent": "Guardian Contact",
+                "th-photo": "Camera photo",
+                "th-status": "Status",
+                "dash-chart-title": "Today's Attendance Rate",
+                "pie-label": "Present",
+                "legend-present": "In Class / Out",
+                "legend-absent": "Not Arrived",
+                "live-header": "Live Camera Attendance & Monitoring",
+                "live-subtitle": "AI face recognition live feed and student attendance override board",
+                "btn-sim-in": "Simulate Check-in",
+                "btn-sim-out": "Simulate Check-out",
+                "live-cam-title": "MJPEG Camera Live Feed (ESP32-CAM)",
+                "live-badge-txt": "LIVE VIDEO STREAM",
+                "live-mjpeg": "MJPEG Connection Stream Active",
+                "w-code": "Kid ID:",
+                "w-class": "Classroom:",
+                "w-parent": "Guardian name:",
+                "w-phone": "Guardian Phone:",
+                "w-time": "Time recorded:",
+                "w-health-prefix": "Health notes:",
+                "live-grid-title": "Children Live Status Grid Cards",
+                "override-tip": "* Teacher can click directly on any card to toggle attendance state (Manual Override)",
+                "cs-header": "Classes & Student Profiles",
+                "cs-subtitle": "Manage classrooms, age ranges, student bio and nạp AI faces models",
+                "tab-classes": "Preschool Classes",
+                "tab-students": "Children Profiles",
+                "classes-table-title": "Registered School Classes",
+                "btn-add-class": "Add New Class",
+                "th-classname": "Class Name",
+                "th-total-kids": "Children Count",
+                "th-age-desc": "Age Description",
+                "th-action": "Action",
+                "students-table-title": "Classroom Student Roster",
+                "btn-add-student": "Register Child",
+                "th-kidcode": "Child Code",
+                "th-kidname": "Full Name",
+                "th-kidclass": "Classroom",
+                "th-kidparent": "Parent & Phone",
+                "th-kidhealth": "Health Notes",
+                "th-kidphoto": "Face Photo",
+                "rep-header": "Historical Attendance & Logs Reports",
+                "rep-subtitle": "Filter daily, weekly or monthly attendance events and export logs to Excel",
+                "btn-export": "Export Excel Report",
+                "lbl-class-filter": "Filter by Class",
+                "lbl-time-filter": "Time Range",
+                "opt-today": "Today",
+                "opt-week": "This Week",
+                "opt-month": "This Month",
+                "btn-apply": "Apply Filter",
+                "th-date": "Date",
+                "th-parent-phone": "Parent Contact",
+                "th-act-status": "Event Status",
+                "stat-header": "Attendance Trends & Analytics",
+                "stat-subtitle": "Analyze on-time check-in rates and class absences",
+                "stat-ontime-rate": "On-Time Rate",
+                "stat-absent-rate": "Average Absence Rate",
+                "stat-chart-bar-title": "Classes On-Time Attendance Ratio (%)",
+                "roles-header": "Role Management & Mappings",
+                "roles-subtitle": "Assign classrooms to teachers and link parent accounts to students",
+                "tab-teachers": "Teachers Mapping",
+                "tab-parents": "Parents Linking",
+                "teachers-assigned-title": "Assign Classrooms access to Teachers",
+                "th-teacher": "Teacher Name",
+                "th-assigned-classes": "Managed Classrooms (Check to Assign)",
+                "link-parent-title": "Create new parent-child account mapping",
+                "lbl-parent-phone": "Parent mobile phone",
+                "lbl-select-kid": "Select Child to Link",
+                "btn-link": "Create Mapping Link",
+                "linked-parents-title": "Linked Parents Database",
+                "th-parent-phone-lbl": "Parent Phone",
+                "th-child-info": "Linked Children Name & ID",
+                "set-header": "Global System Settings",
+                "set-subtitle": "Toggle theme modes, interface language, layout configurations and school times",
+                "set-visual-group": "UI/UX Customization Settings",
+                "set-theme-mode": "Theme Mode",
+                "set-theme-desc": "Switch between Light Mode and Dark Mode to protect eyes",
+                "opt-theme-light": "Light Mode",
+                "opt-theme-dark": "Dark Mode",
+                "set-layout": "Live Attendance Layout Grid",
+                "set-layout-desc": "Number of columns for live children grid",
+                "opt-grid-4": "4 Columns Grid",
+                "opt-grid-5": "5 Columns Grid",
+                "opt-grid-auto": "Auto Scaling Grid",
+                "set-lang": "System Language",
+                "set-lang-desc": "Toggle application-wide labels between Vietnamese / English",
+                "set-school-time": "Kindergarten Arrival thresholds",
+                "lbl-start-time": "Arrival Open time",
+                "lbl-late-time": "Late threshold time",
+                "set-ai-con": "AI Camera & Cloud API Connections",
+                "lbl-ai-url": "REST API Face Recognition Server Endpoint",
+                "lbl-hardware-status": "Hardware Connection Status",
+                "set-esp-cam": "Camera ESP32-CAM",
+                "set-ai-server": "AI Recognition Server",
+                "lbl-setting-voice": "Automatic TTS Audio Welcoming (Vietnamese)",
+                "lbl-setting-sms": "Send SMS report notifications automatically to Parents",
+                "btn-save-settings": "Save Settings",
+                "cap-title": "Capture Face from ESP32-CAM",
+                "cam-connected": "ESP32-CAM Online",
+                "cam-pos-face": "Please align child face before the camera lens",
+                "btn-close": "Close window",
+                "btn-snap": "Capture Face Now",
+                "lbl-reg-photo-mode": "Registration Photo Method",
+                "opt-photo-upload": "Upload local photo file",
+                "opt-photo-esp32": "Snap photo from ESP32-CAM",
+                "lbl-student-photo-file": "Choose identification photo file",
+                "lbl-student-photo-esp": "Captured face from camera",
+                "btn-open-camera-snap": "Open ESP32-CAM to Snap"
+            }
+        };
+
+        let currentLang = "vi";
+
+        function translateUI(lang) {
+            currentLang = lang;
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang] && translations[lang][key]) {
+                    el.innerHTML = translations[lang][key];
+                }
+            });
+        }
+    </script>
+    
+    <script>
+        // CORE STATE & MEMORY
+        let students = [];
+        let classes = [];
+        let logs = [];
+        let settings = { 
+            startTime: "07:00", 
+            lateTime: "08:15", 
+            aiEndpoint: "http://192.168.1.50:5000/api/recognize", 
+            espCamStreamUrl: "http://192.168.1.100/stream",
+            voiceEnabled: true, 
+            smsEnabled: true,
+            theme: "light",
+            gridLayout: "4",
+            lang: "vi"
+        };
+        
+        let currentUser = null; // role: admin, teacher, parent, guest
+        let currentLiveClass = "Mầm 1";
+        
+        // MOCK DATABASE CHO PHÂN QUYỀN TRUY CẬP (Đồng bộ qua localStorage)
+        // 1. Phân quyền giáo viên gán lớp
+        let teacherClassAssignments = {
+            "Cô giáo phụ trách lớp": ["Mầm 1", "Chồi 2"]
+        };
+        // 2. Liên kết phụ huynh con
+        let parentStudentLinks = {};
+
+        // Khởi tạo localStorage
+        if (localStorage.getItem("teacherClassAssignments")) {
+            teacherClassAssignments = JSON.parse(localStorage.getItem("teacherClassAssignments"));
+        } else {
+            localStorage.setItem("teacherClassAssignments", JSON.stringify(teacherClassAssignments));
+        }
+        if (localStorage.getItem("parentStudentLinks")) {
+            parentStudentLinks = JSON.parse(localStorage.getItem("parentStudentLinks"));
+        } else {
+            localStorage.setItem("parentStudentLinks", JSON.stringify(parentStudentLinks));
+        }
+        if (localStorage.getItem("settings")) {
+            settings = { ...settings, ...JSON.parse(localStorage.getItem("settings")) };
+        }
+
+        // Apply settings
+        document.body.setAttribute("data-theme", settings.theme);
+        translateUI(settings.lang);
+
+        // Fetch API Helpers
+        async function fetchStudents() {
+            try {
+                const res = await fetch('api/students');
+                students = await res.json();
+            } catch (err) {
+                console.error("Lỗi API students, dùng dữ liệu dự phòng:", err);
+            }
+        }
+        async function fetchClasses() {
+            try {
+                const res = await fetch('api/classes');
+                classes = await res.json();
+            } catch (err) {
+                console.error("Lỗi API classes, dùng dữ liệu dự phòng:", err);
+            }
+        }
+        async function fetchLogs() {
+            try {
+                const res = await fetch('api/logs');
+                logs = await res.json();
+            } catch (err) {
+                console.error("Lỗi API logs, dùng dữ liệu dự phòng:", err);
+            }
+        }
+        async function fetchSettings() {
+            try {
+                const res = await fetch('api/settings');
+                const data = await res.json();
+                if (data && data.startTime) {
+                    settings = { ...settings, ...data };
+                }
+            } catch (err) {
+                console.error("Lỗi API settings:", err);
+            }
+        }
+
+        let lastLogsCount = 0;
+
+        // Tải trang công khai Landing View đầu tiên
+        window.addEventListener('load', async () => {
+            await fetchStudents();
+            await fetchClasses();
+            await fetchLogs();
+            await fetchSettings();
+            
+            lastLogsCount = logs.length;
+
+            showLandingView();
+            initLandingSlider();
+            updateLandingStats();
+
+            // Kích hoạt đồng bộ hóa thời gian thực tự động mỗi 2 giây
+            setInterval(async () => {
+                const oldLogsLength = lastLogsCount;
+                await fetchStudents();
+                await fetchLogs();
+                await fetchClasses();
+                updateLandingStats();
+
+                if (logs.length > oldLogsLength) {
+                    const newLogsCount = logs.length;
+                    for (let i = oldLogsLength; i < newLogsCount; i++) {
+                        const newLog = logs[i];
+                        if (newLog) {
+                            if (newLog.id === "UNKNOWN") {
+                                showStrangerWarning(newLog);
+                            } else {
+                                const stud = students.find(s => s.id === newLog.id);
+                                if (stud) {
+                                    stud.time = newLog.time;
+                                    stud.status = newLog.status;
+                                    updateWelcomePanel(stud);
+                                }
+                            }
+                        }
+                    }
+                    lastLogsCount = newLogsCount;
+                    
+                    // Tải lại bảng của trang đang mở nếu có
+                    const activePage = document.querySelector('.app-page[style*="display: block"]');
+                    if (activePage) {
+                        if (activePage.id === 'page-dashboard') loadDashboard();
+                        if (activePage.id === 'page-live-attendance') loadLiveAttendanceGrid();
+                        if (activePage.id === 'page-attendance-report') renderReportRows();
+                    }
+                }
+            }, 2000);
+        });
+
+        // =====================================================
+        // PORTAL ROUTING & ACCESS CONTROLS (RBAC)
+        // =====================================================
+        function showLandingView() {
+            currentUser = null;
+            document.getElementById('landing-page').style.display = 'flex';
+            document.getElementById('login-page').style.display = 'none';
+            document.getElementById('app-container').style.display = 'none';
+            document.getElementById('parent-tracking-page').style.display = 'none';
+        }
+
+        function showLoginView(prefRole = 'admin') {
+            document.getElementById('landing-page').style.display = 'none';
+            document.getElementById('login-page').style.display = 'flex';
+            
+            const accField = document.getElementById('login-account');
+            if (prefRole === 'admin') accField.value = 'admin';
+            else if (prefRole === 'teacher') accField.value = 'teacher';
+            else if (prefRole === 'parent') accField.value = '0901234567';
+        }
+
+        // Biểu mẫu liên hệ khách (Contact form)
+        function handleContactSubmit(e) {
+            e.preventDefault();
+            alert("Gửi yêu cầu hỗ trợ thành công! Ban học vụ sẽ phản hồi lại cho bạn trong vòng 2 giờ.");
+            document.getElementById('contact-form').reset();
+        }
+
+        // Landing Slide Auto Rotate
+        let slideIndex = 0;
+        let slideInterval = null;
+        function initLandingSlider() {
+            if (slideInterval) clearInterval(slideInterval);
+            slideInterval = setInterval(() => {
+                slideIndex = (slideIndex + 1) % 3;
+                showSlide(slideIndex);
+            }, 5000);
+        }
+        function setSlide(idx) {
+            slideIndex = idx;
+            showSlide(slideIndex);
+            initLandingSlider();
+        }
+        function showSlide(idx) {
+            const slides = document.querySelectorAll('.slide');
+            const dots = document.querySelectorAll('.slide-dot');
+            slides.forEach((s, i) => {
+                s.classList.remove('active');
+                dots[i].classList.remove('active');
+                if (i === idx) {
+                    s.classList.add('active');
+                    dots[i].classList.add('active');
+                }
+            });
+        }
+
+        function updateLandingStats() {
+            // Hiển thị số liệu thực tế từ cơ sở dữ liệu
+            const total = students.length;
+            const countLogs = logs.length;
+            
+            // Lượt đưa đón thực tế dựa trên số logs ghi nhận
+            document.getElementById('pub-stat-total').innerText = countLogs;
+            
+            // Tỷ lệ chuyên cần thực tế = (học sinh đã điểm danh / tổng học sinh)
+            const presentCount = students.filter(s => s.status && s.status !== 'Chưa điểm danh').length;
+            const rate = total > 0 ? Math.round((presentCount / total) * 100) : 0;
+            document.getElementById('pub-stat-active').innerText = rate + "%";
+            
+            // Số lượng lớp học thực tế
+            document.getElementById('pub-stat-classes').innerText = classes.length;
+        }
+
+        // LOGIN SUBMIT & ROLE DETECT
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const account = document.getElementById('login-account').value.trim();
+            const pass = document.getElementById('login-password').value.trim();
+
+            if (account.toLowerCase() === 'admin') {
+                currentUser = { name: "Hiệu Trưởng KidCheck", role: "admin" };
+                enterApp();
+            } else if (account.toLowerCase() === 'teacher') {
+                currentUser = { name: "Cô giáo phụ trách lớp", role: "teacher" };
+                enterApp();
+            } else if (parentStudentLinks[account]) {
+                currentUser = { name: "Phụ Huynh Bé", role: "parent", phone: account, studentId: parentStudentLinks[account] };
+                enterParentPortal();
+            } else {
+                alert("Tài khoản hoặc số điện thoại chưa được đăng ký trong hệ thống!");
+            }
+        });
+
+        function logout() {
+            showLandingView();
+        }
+
+        // ENTER PORTAL: PARENT
+        function enterParentPortal() {
+            document.getElementById('login-page').style.display = 'none';
+            document.getElementById('parent-tracking-page').style.display = 'flex';
+            
+            document.getElementById('parent-display-phone').innerText = currentUser.phone;
+            
+            loadParentTrackingHub();
+        }
+
+        function loadParentTrackingHub() {
+            const studentId = currentUser.studentId;
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
+
+            document.getElementById('parent-kid-name').innerText = student.name;
+            document.getElementById('parent-kid-class').innerText = "Lớp: " + student.className;
+            document.getElementById('parent-kid-health').innerText = student.healthNote || "Bình thường";
+            document.getElementById('parent-kid-photo').src = student.photo;
+            document.getElementById('parent-evidence-photo').src = student.pickupStatus === 'Đã đón về' ? "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop" : student.photo;
+            document.getElementById('parent-evidence-time').innerHTML = `<i class="fa-solid fa-camera"></i> ` + (student.time || "Chưa ghi nhận");
+
+            const statusBadge = document.getElementById('parent-kid-status-badge');
+            statusBadge.className = "student-status-badge";
+            
+            if (student.pickupStatus === 'Đã đón về') {
+                statusBadge.classList.add('status-pickup');
+                statusBadge.innerText = currentLang === 'vi' ? "Đã đón về" : "Checked Out";
+            } else if (student.status === 'Có mặt') {
+                statusBadge.classList.add('status-present');
+                statusBadge.innerText = currentLang === 'vi' ? "Đang ở lớp" : "In Class";
+            } else if (student.status === 'Đi trễ') {
+                statusBadge.classList.add('status-late');
+                statusBadge.innerText = currentLang === 'vi' ? "Đến muộn" : "Arrived Late";
+            } else {
+                statusBadge.classList.add('status-default');
+                statusBadge.innerText = currentLang === 'vi' ? "Chưa đến trường" : "Not Arrived";
+            }
+
+            // Vẽ Lịch Chuyên Cần Tháng (Calendar View)
+            const grid = document.getElementById('parent-calendar-grid');
+            grid.innerHTML = '';
+
+            // Render thứ trong tuần
+            const weekdays = currentLang === 'vi' ? ["T2", "T3", "T4", "T5", "T6", "T7", "CN"] : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+            weekdays.forEach(day => {
+                grid.innerHTML += `<div class="calendar-weekday">${day}</div>`;
+            });
+
+            // Giả lập tháng 6/2026 bắt đầu từ thứ 2 (1/6/2026) có 30 ngày
+            for (let i = 1; i <= 30; i++) {
+                let dotHtml = '';
+                // Thêm chấm chuyên cần mô phỏng cho quá khứ
+                if (i < 10) {
+                    dotHtml = `<span class="calendar-dot dot-green"></span>`; // đúng giờ
+                } else if (i === 11) {
+                    dotHtml = `<span class="calendar-dot dot-yellow"></span>`; // đi muộn
+                } else if (i === 12) {
+                    dotHtml = `<span class="calendar-dot dot-red"></span>`; // vắng mặt
+                } else if (i > 12 && i < 28) {
+                    dotHtml = `<span class="calendar-dot dot-green"></span>`; // đúng giờ
+                } else if (i === 28) { // Today simulated
+                    if (student.pickupStatus === 'Đã đón về') {
+                        dotHtml = `<span class="calendar-dot dot-blue"></span>`;
+                    } else if (student.status === 'Có mặt') {
+                        dotHtml = `<span class="calendar-dot dot-green"></span>`;
+                    } else if (student.status === 'Đi trễ') {
+                        dotHtml = `<span class="calendar-dot dot-yellow"></span>`;
+                    } else {
+                        dotHtml = `<span class="calendar-dot dot-red"></span>`;
+                    }
+                }
+                
+                grid.innerHTML += `
+                    <div class="calendar-day ${i === 28 ? 'today' : ''}">
+                        ${i}
+                        ${dotHtml}
+                    </div>
+                `;
+            }
+        }
+
+        // ENTER APP: ADMIN & TEACHER
+        function enterApp() {
+            document.getElementById('login-page').style.display = 'none';
+            document.getElementById('app-container').style.display = 'flex';
+            
+            document.getElementById('display-user-name').innerText = currentUser.name;
+            document.getElementById('display-user-role').innerText = currentUser.role === 'admin' ? "Quản trị viên" : "Giáo viên";
+
+            // Thiết lập Menu Sidebar dựa trên vai trò gán quyền
+            const menu = document.getElementById('sidebar-menu');
+            menu.innerHTML = '';
+            
+            if (currentUser.role === 'admin') {
+                menu.innerHTML = `
+                    <li class="nav-item active" data-page="dashboard"><a href="#" onclick="switchPage('dashboard')"><i class="fa-solid fa-house-chimney-window"></i> <span>Trang chủ</span></a></li>
+                    <li class="nav-item" data-page="live-attendance"><a href="#" onclick="switchPage('live-attendance')"><i class="fa-solid fa-camera-web"></i> <span>Điểm danh Live</span></a></li>
+                    <li class="nav-item" data-page="student-management"><a href="#" onclick="switchPage('student-management')"><i class="fa-solid fa-children"></i> <span>Quản lý Lớp & Bé</span></a></li>
+                    <li class="nav-item" data-page="attendance-report"><a href="#" onclick="switchPage('attendance-report')"><i class="fa-solid fa-file-shield"></i> <span>Nhật ký Đưa Đón</span></a></li>
+                    <li class="nav-item" data-page="statistics"><a href="#" onclick="switchPage('statistics')"><i class="fa-solid fa-chart-pie"></i> <span>Thống kê Đi Học</span></a></li>
+                    <li class="nav-item" data-page="role-management"><a href="#" onclick="switchPage('role-management')"><i class="fa-solid fa-user-lock"></i> <span>Phân quyền</span></a></li>
+                    <li class="nav-item" data-page="settings"><a href="#" onclick="switchPage('settings')"><i class="fa-solid fa-sliders"></i> <span>Cấu hình</span></a></li>
+                `;
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('.teacher-only').forEach(el => el.style.display = 'none');
+            } else if (currentUser.role === 'teacher') {
+                menu.innerHTML = `
+                    <li class="nav-item active" data-page="dashboard"><a href="#" onclick="switchPage('dashboard')"><i class="fa-solid fa-house-chimney-window"></i> <span>Trang chủ</span></a></li>
+                    <li class="nav-item" data-page="live-attendance"><a href="#" onclick="switchPage('live-attendance')"><i class="fa-solid fa-camera-web"></i> <span>Điểm danh Live</span></a></li>
+                    <li class="nav-item" data-page="student-management"><a href="#" onclick="switchPage('student-management')"><i class="fa-solid fa-children"></i> <span>Danh sách Học sinh</span></a></li>
+                    <li class="nav-item" data-page="attendance-report"><a href="#" onclick="switchPage('attendance-report')"><i class="fa-solid fa-file-shield"></i> <span>Nhật ký Đưa Đón</span></a></li>
+                    <li class="nav-item" data-page="statistics"><a href="#" onclick="switchPage('statistics')"><i class="fa-solid fa-chart-pie"></i> <span>Thống kê lớp</span></a></li>
+                `;
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('.teacher-only').forEach(el => el.style.display = 'block');
+            }
+            
+            // Đồng bộ dịch ngôn ngữ cho Sidebar
+            translateUI(settings.lang);
+
+            switchPage('dashboard');
+        }
+
+        // Chuyển trang SPA
+        function switchPage(pageId) {
+            document.querySelectorAll('.app-page').forEach(page => page.style.display = 'none');
+            document.querySelectorAll('.nav-menu .nav-item').forEach(i => i.classList.remove('active'));
+            
+            const activePage = document.getElementById(`page-${pageId}`);
+            if (activePage) activePage.style.display = 'block';
+            
+            const activeNavItem = document.querySelector(`.nav-menu .nav-item[data-page="${pageId}"]`);
+            if (activeNavItem) activeNavItem.classList.add('active');
+
+            if (pageId === 'dashboard') loadDashboard();
+            if (pageId === 'live-attendance') loadLiveAttendanceView();
+            if (pageId === 'student-management') loadStudentManagementView();
+            if (pageId === 'attendance-report') loadReportView();
+            if (pageId === 'statistics') loadStatisticsView();
+            if (pageId === 'role-management') loadRoleManagementView();
+            if (pageId === 'settings') loadSettingsView();
+        }
+
+        // =====================================================
+        // 3. DASHBOARD PAGE LOGIC
+        // =====================================================
+        function loadDashboard() {
+            document.getElementById('current-date-text').innerText = new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            
+            // Lọc dữ liệu lớp học cho Admin trên Dashboard
+            if (currentUser.role === 'admin') {
+                const select = document.getElementById('dash-class-select');
+                const container = document.getElementById('dash-class-filter-container');
+                if (container) container.style.display = 'block';
+                if (select && select.children.length <= 1) {
+                    select.innerHTML = `<option value="all">${currentLang === 'vi' ? 'Toàn trường' : 'All School'}</option>`;
+                    classes.forEach(c => {
+                        select.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+                    });
+                }
+            } else {
+                const container = document.getElementById('dash-class-filter-container');
+                if (container) container.style.display = 'none';
+            }
+
+            let filteredStudents = students;
+            if (currentUser.role === 'teacher') {
+                const assigned = teacherClassAssignments[currentUser.name] || [];
+                filteredStudents = students.filter(s => assigned.includes(s.className));
+            } else if (currentUser.role === 'admin') {
+                const select = document.getElementById('dash-class-select');
+                const selectedClass = select ? select.value : 'all';
+                if (selectedClass !== 'all') {
+                    filteredStudents = students.filter(s => s.className === selectedClass);
+                }
+            }
+
+            const total = filteredStudents.length;
+            const present = filteredStudents.filter(s => s.status === 'Có mặt' || s.status === 'Đi trễ' || s.pickupStatus === 'Đã đón về').length;
+            const late = filteredStudents.filter(s => s.status === 'Đi trễ').length;
+            const absent = filteredStudents.filter(s => s.status === 'Chưa điểm danh' || s.status === 'Vắng mặt').length;
+
+            document.getElementById('stat-total-val').innerText = total;
+            document.getElementById('stat-present-val').innerText = present;
+            document.getElementById('stat-late-val').innerText = late;
+            document.getElementById('stat-absent-val').innerText = absent;
+
+            // Cập nhật biểu đồ tròn tỉ lệ điểm danh - Fix lỗi hiển thị 0%
+            const percent = total > 0 ? Math.round((present / total) * 100) : 0;
+            document.getElementById('dash-pie-percent').innerText = `${percent}%`;
+            
+            const strokeDash = Math.round(440 - (440 * percent) / 100);
+            document.getElementById('dash-pie-circle').setAttribute('stroke-dashoffset', strokeDash);
+
+            // Tải danh sách hoạt động gần đây
+            const tbody = document.getElementById('recent-logs-table-body');
+            tbody.innerHTML = '';
+            
+            // Lọc logs của giáo viên hoặc theo class select của admin
+            let filteredLogs = logs;
+            if (currentUser.role === 'teacher') {
+                const assigned = teacherClassAssignments[currentUser.name] || [];
+                filteredLogs = logs.filter(l => assigned.includes(l.className));
+            } else if (currentUser.role === 'admin') {
+                const select = document.getElementById('dash-class-select');
+                const selectedClass = select ? select.value : 'all';
+                if (selectedClass !== 'all') {
+                    filteredLogs = logs.filter(l => l.className === selectedClass);
+                }
+            }
+
+            if (filteredLogs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-light); padding: 30px;">Hôm nay chưa ghi nhận hoạt động đưa đón nào.</td></tr>`;
+            } else {
+                filteredLogs.slice().reverse().slice(0, 10).forEach(log => {
+                    let badgeClass = 'status-default';
+                    let statusLabel = log.status;
+                    if (log.status === 'Có mặt' || log.status === 'Bé đến lớp') {
+                        badgeClass = 'status-present';
+                        statusLabel = 'Đã đến lớp';
+                    } else if (log.status === 'Đi trễ' || log.status === 'Bé đến muộn') {
+                        badgeClass = 'status-late';
+                        statusLabel = 'Đến muộn';
+                    } else if (log.status === 'Đã đón về' || log.status === 'Đón bé về') {
+                        badgeClass = 'status-pickup';
+                        statusLabel = 'Đã đón về';
+                    }
+
+                    const stud = students.find(s => s.id === log.id);
+                    const parentInfo = stud ? `<strong>${stud.parentName}</strong><br><span style="font-size:0.8rem;color:var(--text-light);">${stud.parentPhone}</span>` : 'N/A';
+
+                    const displayTime = log.time && log.time.includes(' ') ? log.time.split(' ')[1] : (log.time || '--:--');
+
+                    tbody.innerHTML += `
+                        <tr class="${badgeClass}">
+                            <td><strong style="color:var(--primary);">${displayTime}</strong></td>
+                            <td><strong>${log.name}</strong> (${log.id})</td>
+                            <td><span style="background:rgba(108, 92, 231, 0.1); color:#6C5CE7; padding:4px 8px; border-radius:8px; font-size:0.85rem; font-weight:700;">${log.className}</span></td>
+                            <td>${parentInfo}</td>
+                            <td><span class="student-status-badge">${statusLabel}</span></td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        // =====================================================
+        // 4. LIVE ATTENDANCE PAGE LOGIC
+        // =====================================================
+        function loadLiveAttendanceView() {
+            // Load dropdown các lớp học
+            const selector = document.getElementById('live-class-selector');
+            selector.innerHTML = '';
+            
+            let filteredClasses = classes;
+            // Nếu là giáo viên, chỉ hiển thị các lớp giáo viên phụ trách
+            if (currentUser.role === 'teacher') {
+                const assigned = teacherClassAssignments[currentUser.name] || [];
+                filteredClasses = classes.filter(c => assigned.includes(c.name));
+            }
+
+            if (filteredClasses.length === 0) {
+                selector.innerHTML = `<option value="">Không có lớp</option>`;
+                return;
+            }
+
+            filteredClasses.forEach(c => {
+                selector.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+            });
+
+            // Chọn mặc định lớp đầu tiên
+            if (filteredClasses.some(c => c.name === currentLiveClass)) {
+                selector.value = currentLiveClass;
+            } else {
+                currentLiveClass = filteredClasses[0].name;
+                selector.value = currentLiveClass;
+            }
+
+            loadLiveAttendanceGrid();
+            updateLiveStreamUrl();
+        }
+
+        function updateLiveStreamUrl() {
+            const feedImg = document.getElementById('real-camera-feed');
+            const placeholder = document.getElementById('video-feed');
+            const streamInfo = document.getElementById('camera-stream-info');
+            if (feedImg && settings.espCamStreamUrl) {
+                feedImg.src = settings.espCamStreamUrl;
+                feedImg.style.display = 'block';
+                if (placeholder) placeholder.style.display = 'none';
+                if (streamInfo) streamInfo.innerText = "Stream: " + settings.espCamStreamUrl;
+            }
+        }
+
+        function handleCameraError() {
+            const feedImg = document.getElementById('real-camera-feed');
+            const placeholder = document.getElementById('video-feed');
+            if (feedImg) feedImg.style.display = 'none';
+            if (placeholder) {
+                placeholder.style.display = 'flex';
+                const label = placeholder.querySelector('p');
+                if (label) label.innerText = "Không thể kết nối luồng video ESP32-CAM. Vui lòng kiểm tra IP và cổng kết nối.";
+            }
+        }
+
+        function changeLiveClass() {
+            currentLiveClass = document.getElementById('live-class-selector').value;
+            loadLiveAttendanceGrid();
+        }
+
+        function loadLiveAttendanceGrid() {
+            const grid = document.getElementById('live-attendance-grid');
+            grid.innerHTML = '';
+
+            // Apply grid layout setting
+            grid.className = "attendance-grid";
+            if (settings.gridLayout === "4") grid.classList.add("cols-4");
+            else if (settings.gridLayout === "5") grid.classList.add("cols-5");
+            else grid.classList.add("cols-auto");
+
+            const classStudents = students.filter(s => s.className === currentLiveClass);
+            
+            if (classStudents.length === 0) {
+                grid.innerHTML = `<div style="grid-column: span 5; text-align:center; color: var(--text-light); padding: 40px;">Lớp học này hiện tại chưa có bé nào học.</div>`;
+                return;
+            }
+
+            classStudents.forEach(student => {
+                const isArrived = student.status !== 'Chưa điểm danh';
+                const isPickedUp = student.pickupStatus === 'Đã đón về';
+                
+                let cardClass = 'status-default';
+                let statusLabel = 'Chưa điểm danh';
+                if (isPickedUp) {
+                    cardClass = 'status-pickup active';
+                    statusLabel = 'Đã đón về';
+                } else if (student.status === 'Có mặt') {
+                    cardClass = 'status-present active';
+                    statusLabel = 'Đang ở lớp';
+                } else if (student.status === 'Đi trễ') {
+                    cardClass = 'status-late active';
+                    statusLabel = 'Đến muộn';
+                } else if (student.status === 'Vắng mặt') {
+                    cardClass = 'status-absent';
+                    statusLabel = 'Vắng mặt';
+                }
+
+                grid.innerHTML += `
+                    <div class="student-card ${cardClass}" onclick="toggleStudentOverride('${student.id}')">
+                        <div class="student-card-img" style="background-image: url('${student.photo}')">
+                            ${!isArrived && !isPickedUp ? `<div style="position:absolute; inset:0; background:rgba(255,255,255,0.75); display:flex; align-items:center; justify-content:center;"><i class="fa-solid fa-baby" style="font-size:3.5rem; color:#CBD5E1;"></i></div>` : ''}
+                        </div>
+                        <div class="student-card-info">
+                            <div class="student-card-name">${student.name}</div>
+                            <div class="student-card-class"><i class="fa-solid fa-school" style="margin-right:5px; font-size:0.8rem;"></i>Lớp: ${student.className}</div>
+                            <div style="margin-bottom:10px; font-size:0.8rem; color:var(--text-light);">
+                                <i class="fa-solid fa-user-shield" style="margin-right:5px;"></i>PH: ${student.parentName || 'N/A'}
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span class="student-status-badge">${statusLabel}</span>
+                                ${student.time ? `<span style="font-size:0.8rem; font-weight:700; color:var(--primary);"><i class="fa-solid fa-clock" style="margin-right:3px;"></i>${student.time}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // TÍNH NĂNG MANUAL OVERRIDE (CLICK CARD ĐỂ THAY ĐỔI TRẠNG THÁI THỦ CÔNG)
+        async function toggleStudentOverride(id) {
+            const student = students.find(s => s.id === id);
+            if (!student) return;
+
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+            // Cycle trạng thái: Chưa điểm danh -> Có mặt -> Đi trễ -> Vắng mặt -> Chưa điểm danh
+            if (student.status === 'Chưa điểm danh') {
+                student.status = 'Có mặt';
+                student.pickupStatus = 'Đang ở lớp';
+                student.time = timeStr;
+                speakWelcome(`Điểm danh thủ công. Chào mừng bé ${student.name} đã đến lớp.`);
+                await logOverride(student, 'Bé đến lớp', timeStr);
+            } else if (student.status === 'Có mặt') {
+                student.status = 'Đi trễ';
+                student.pickupStatus = 'Đang ở lớp';
+                student.time = timeStr;
+                speakWelcome(`Điểm danh thủ công. Bé ${student.name} đi học muộn.`);
+                await logOverride(student, 'Bé đến muộn', timeStr);
+            } else if (student.status === 'Đi trễ') {
+                student.status = 'Vắng mặt';
+                student.pickupStatus = 'Chưa đến';
+                student.time = '';
+                speakWelcome(`Điểm danh thủ công. Ghi nhận bé ${student.name} vắng mặt hôm nay.`);
+                await logOverride(student, 'Vắng mặt', '');
+            } else {
+                student.status = 'Chưa điểm danh';
+                student.pickupStatus = 'Chưa đến';
+                student.time = '';
+            }
+
+            // Ghi nhận lên Servlet backend
+            await fetch('api/students', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(student)
+            });
+
+            await fetchStudents();
+            await fetchLogs();
+            loadLiveAttendanceGrid();
+            updateWelcomePanel(student);
+        }
+
+        async function logOverride(student, statusText, timeStr) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            let fullTimeStr = timeStr;
+            if (timeStr && !timeStr.includes('-')) {
+                fullTimeStr = `${todayStr} ${timeStr}`;
+            } else if (!timeStr) {
+                fullTimeStr = `${todayStr} --:--`;
+            }
+
+            await fetch('api/logs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: student.id,
+                    name: student.name,
+                    className: student.className,
+                    photo: student.photo,
+                    status: statusText,
+                    time: fullTimeStr,
+                    parentName: student.parentName,
+                    parentPhone: student.parentPhone,
+                    pickupStatus: student.pickupStatus
+                })
+            });
+        }
+
+        // =====================================================
+        // 5. CLASS & STUDENT MANAGEMENT LOGIC
+        // =====================================================
+        function switchClassStudentTab(tabId) {
+            document.querySelectorAll('#page-student-management .tab-pane').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('#page-student-management .tab-btn').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            if (tabId === 'tab-classes') {
+                document.getElementById('btn-tab-classes').classList.add('active');
+                loadClassesTable();
+            } else {
+                document.getElementById('btn-tab-students').classList.add('active');
+                loadStudentsTable();
+            }
+        }
+
+        function loadStudentManagementView() {
+            switchClassStudentTab('tab-classes');
+        }
+
+        function loadClassesTable() {
+            const tbody = document.getElementById('class-list-tbody');
+            tbody.innerHTML = '';
+
+            classes.forEach(c => {
+                const count = students.filter(s => s.className === c.name).length;
+                
+                let actionHtml = '';
+                if (currentUser.role === 'admin') {
+                    actionHtml = `
+                        <td>
+                            <button onclick="editClassTime('${c.name}', '${c.startTime || '07:00'}', '${c.lateTime || '08:15'}')" class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem; margin-right:5px;"><i class="fa-solid fa-clock"></i> Sửa giờ</button>
+                            <button onclick="deleteClass('${c.name}')" class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem; color:var(--danger);"><i class="fa-solid fa-trash"></i> Xóa lớp</button>
+                        </td>
+                    `;
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${c.name}</strong></td>
+                        <td><strong style="color: var(--primary-dark); font-size:1.1rem;">${count}</strong> bé yêu đang học</td>
+                        <td><strong style="color: var(--primary-dark);">${c.startTime || '07:00'} - ${c.lateTime || '08:15'}</strong></td>
+                        <td><span style="background:rgba(108, 92, 231, 0.1); color:#6C5CE7; padding:6px 12px; border-radius:10px; font-weight:700; font-size:0.85rem;">${c.desc}</span></td>
+                        ${actionHtml}
+                    </tr>
+                `;
+            });
+        }
+
+        function loadStudentsTable() {
+            const filter = document.getElementById('student-class-filter');
+            if (currentUser.role === 'teacher') {
+                const assigned = teacherClassAssignments[currentUser.name] || [];
+                filter.innerHTML = `<option value="all">${currentLang === 'vi' ? 'Tất cả lớp phụ trách' : 'All Assigned Classes'}</option>`;
+                classes.filter(c => assigned.includes(c.name)).forEach(c => {
+                    filter.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+                });
+            } else {
+                filter.innerHTML = `<option value="all">${currentLang === 'vi' ? 'Tất cả các lớp' : 'All Classes'}</option>`;
+                classes.forEach(c => {
+                    filter.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+                });
+            }
+
+            filterStudentsTable();
+        }
+
+        function filterStudentsTable() {
+            const clsFilter = document.getElementById('student-class-filter').value;
+            const tbody = document.getElementById('student-list-tbody');
+            tbody.innerHTML = '';
+
+            let filtered = students;
+            if (currentUser.role === 'teacher') {
+                const assigned = teacherClassAssignments[currentUser.name] || [];
+                if (clsFilter === 'all') {
+                    filtered = students.filter(s => assigned.includes(s.className));
+                } else {
+                    filtered = students.filter(s => s.className === clsFilter && assigned.includes(s.className));
+                }
+            } else {
+                if (clsFilter !== 'all') {
+                    filtered = students.filter(s => s.className === clsFilter);
+                }
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-light); padding:20px;">Không có bé nào phù hợp lớp này.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(student => {
+                const parentInfo = `<strong>${student.parentName || 'N/A'}</strong><br><span style="font-size:0.8rem;color:var(--text-light);"><i class="fa-solid fa-phone" style="font-size:0.75rem;"></i> ${student.parentPhone || 'N/A'}</span>`;
+                
+                let actionHtml = '';
+                if (currentUser.role === 'admin') {
+                    actionHtml = `
+                        <td>
+                            <button onclick="editStudent('${student.id}')" class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;"><i class="fa-solid fa-pen-to-square" style="color: #6C5CE7;"></i> Sửa</button>
+                            <button onclick="deleteStudent('${student.id}')" class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem; color:var(--danger);"><i class="fa-solid fa-trash"></i> Xóa</button>
+                        </td>
+                    `;
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${student.id}</strong></td>
+                        <td><strong style="color:var(--primary); font-size:1.05rem;">${student.name}</strong></td>
+                        <td><span style="background:#EBF8FF; color:#2B6CB0; padding:6px 12px; border-radius:10px; font-weight:700; font-size:0.85rem;">${student.className}</span></td>
+                        <td>${parentInfo}</td>
+                        <td>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <img src="${student.photo}" style="width:48px; height:48px; border-radius:10px; object-fit:cover;">
+                                ${currentUser.role === 'admin' ? `<button onclick="openCaptureModal('${student.id}')" class="btn btn-secondary" style="padding:4px 8px; font-size:0.7rem;"><i class="fa-solid fa-camera"></i> Nạp Cam</button>` : ''}
+                            </div>
+                        </td>
+                        ${actionHtml}
+                    </tr>
+                `;
+            });
+        }
+
+        // MOCK CHỤP HÌNH TỪ ESP32-CAM (ĐĂNG KÝ KHUÔN MẶT BÉ)
+        let activeCaptureStudentId = null;
+        function openCaptureModal(id) {
+            activeCaptureStudentId = id;
+            document.getElementById('shutter-countdown').style.display = 'none';
+            document.getElementById('simulated-capture-view').style.display = 'none';
+            document.getElementById('cam-face-guide').style.display = 'block';
+            document.getElementById('cam-instruct').innerText = currentLang === 'vi' ? "Vui lòng đưa bé đứng thẳng trước ESP32-CAM" : "Please align child face before the camera lens";
+            document.getElementById('student-capture-modal').style.display = 'flex';
+        }
+        function closeCaptureModal() {
+            document.getElementById('student-capture-modal').style.display = 'none';
+        }
+        function triggerSimulatedCapture() {
+            const countEl = document.getElementById('shutter-countdown');
+            const guide = document.getElementById('cam-face-guide');
+            const view = document.getElementById('simulated-capture-view');
+            const instruct = document.getElementById('cam-instruct');
+            
+            countEl.innerText = "3";
+            countEl.style.display = "block";
+            guide.style.display = "none";
+            view.style.display = "none";
+            instruct.innerText = currentLang === 'vi' ? "Đang lấy nét khuôn mặt..." : "Focusing face...";
+
+            let count = 3;
+            const timer = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countEl.innerText = count;
+                } else {
+                    clearInterval(timer);
+                    countEl.style.display = "none";
+                    
+                    // Chụp thành công: gán ảnh mô phỏng
+                    view.src = "https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=150&auto=format&fit=crop"; // ảnh demo
+                    view.style.display = "block";
+                    instruct.innerText = currentLang === 'vi' ? "Nạp mẫu khuôn mặt vào ESP32-CAM thành công!" : "Face model registered successfully!";
+                    
+                    // Cập nhật cho học sinh hoặc lưu tạm nếu đăng ký mới
+                    if (activeCaptureStudentId === "NEW") {
+                        tempCapturedPhotoUrl = view.src;
+                        const indicator = document.getElementById('reg-photo-indicator');
+                        if (indicator) indicator.style.display = 'block';
+                    } else {
+                        const stud = students.find(s => s.id === activeCaptureStudentId);
+                        if (stud) {
+                            stud.photo = view.src;
+                            fetch('api/students', {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(stud)
+                            }).then(() => {
+                                fetchStudents().then(() => filterStudentsTable());
+                            });
+                        }
+                    }
+                }
+            }, 1000);
+        }
+
+        // Modal Class & Forms handlers
+        function openClassModal() {
+            document.getElementById('class-name').value = '';
+            document.getElementById('class-desc').value = '';
+            document.getElementById('class-modal').style.display = 'flex';
+        }
+
+        function closeClassModal() {
+            document.getElementById('class-modal').style.display = 'none';
+        }
+
+        async function handleClassSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('class-name').value.trim();
+            const desc = document.getElementById('class-desc').value.trim();
+
+            if (!name) return;
+
+            try {
+                const res = await fetch('api/classes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, desc })
+                });
+
+                if (res.status === 409) {
+                    alert(currentLang === 'vi' ? "Lớp học này đã tồn tại!" : "Class already exists!");
+                    return;
+                }
+
+                alert(currentLang === 'vi' ? "Tạo lớp học mới thành công!" : "New class created successfully!");
+                closeClassModal();
+                await fetchClasses();
+                loadClassesTable();
+            } catch (err) {
+                console.error("Lỗi khi thêm lớp học:", err);
+            }
+        }
+
+        async function deleteClass(name) {
+            const confirmMsg = currentLang === 'vi' 
+                ? `Bạn có chắc chắn muốn xóa lớp học ${name}? Tất cả các bé thuộc lớp này vẫn được giữ nguyên hồ sơ.` 
+                : `Are you sure you want to delete class ${name}? Children profiles will remain.`;
+            if (!confirm(confirmMsg)) return;
+
+            try {
+                const res = await fetch(`api/classes?name=${encodeURIComponent(name)}`, {
+                    method: 'DELETE'
+                });
+
+                if (res.ok) {
+                    alert(currentLang === 'vi' ? "Xóa lớp học thành công!" : "Class deleted successfully!");
+                    await fetchClasses();
+                    loadClassesTable();
+                }
+            } catch (err) {
+                console.error("Lỗi khi xóa lớp học:", err);
+            }
+        }
+
+        function editClassTime(name, startTime, lateTime) {
+            document.getElementById('class-time-target-name').value = name;
+            document.getElementById('class-start-time').value = startTime;
+            document.getElementById('class-late-time').value = lateTime;
+            document.getElementById('class-time-modal').style.display = 'flex';
+        }
+
+        function closeClassTimeModal() {
+            document.getElementById('class-time-modal').style.display = 'none';
+        }
+
+        async function handleClassTimeSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('class-time-target-name').value;
+            const startTime = document.getElementById('class-start-time').value;
+            const lateTime = document.getElementById('class-late-time').value;
+
+            const cls = classes.find(c => c.name === name);
+            if (!cls) return;
+
+            cls.startTime = startTime;
+            cls.lateTime = lateTime;
+
+            try {
+                const res = await fetch('api/classes', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(cls)
+                });
+
+                if (res.ok) {
+                    alert(currentLang === 'vi' ? "Cập nhật giờ học của lớp thành công!" : "Class schedule updated successfully!");
+                    closeClassTimeModal();
+                    await fetchClasses();
+                    loadClassesTable();
+                } else {
+                    alert("Lỗi khi cập nhật giờ học!");
+                }
+            } catch (err) {
+                console.error("Lỗi khi sửa giờ lớp học:", err);
+            }
+        }
+
+        // Modal Student & Forms handlers
+        function openStudentModal() {
+            document.getElementById('student-modal-title').innerText = currentLang === 'vi' ? "Đăng ký bé yêu mới" : "Register Child";
+            document.getElementById('student-edit-id').value = '';
+            document.getElementById('student-code').value = '';
+            document.getElementById('student-code').disabled = false;
+            document.getElementById('student-name').value = '';
+            document.getElementById('student-parent').value = '';
+            document.getElementById('student-phone').value = '';
+            document.getElementById('student-health').value = 'Bình thường';
+            
+            // Reset các trường liên quan đến ảnh nhận dạng
+            document.getElementById('student-photo-mode').value = 'upload';
+            document.getElementById('student-photo-file').value = '';
+            toggleStudentPhotoMode();
+            tempCapturedPhotoUrl = "";
+            const indicator = document.getElementById('reg-photo-indicator');
+            if (indicator) indicator.style.display = 'none';
+
+            const classSelect = document.getElementById('student-class');
+            classSelect.innerHTML = '';
+            classes.forEach(c => {
+                classSelect.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+            });
+
+            document.getElementById('student-modal').style.display = 'flex';
+        }
+
+        function closeStudentModal() {
+            document.getElementById('student-modal').style.display = 'none';
+        }
+
+        function toggleStudentPhotoMode() {
+            const mode = document.getElementById('student-photo-mode').value;
+            if (mode === 'upload') {
+                document.getElementById('student-photo-file-group').style.display = 'block';
+                document.getElementById('student-photo-esp-group').style.display = 'none';
+            } else {
+                document.getElementById('student-photo-file-group').style.display = 'none';
+                document.getElementById('student-photo-esp-group').style.display = 'block';
+            }
+        }
+
+        let tempCapturedPhotoUrl = "";
+
+        function openCaptureModalFromRegistration() {
+            openCaptureModal("NEW");
+        }
+
+        function getSelectedPhotoBase64() {
+            return new Promise((resolve) => {
+                const fileInput = document.getElementById('student-photo-file');
+                const file = fileInput.files[0];
+                if (!file) {
+                    resolve(null);
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    resolve(reader.result);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function handleStudentSubmit(e) {
+            e.preventDefault();
+            const editId = document.getElementById('student-edit-id').value;
+            const id = document.getElementById('student-code').value.trim();
+            const name = document.getElementById('student-name').value.trim();
+            const className = document.getElementById('student-class').value;
+            const parentName = document.getElementById('student-parent').value.trim();
+            const parentPhone = document.getElementById('student-phone').value.trim();
+            const healthNote = document.getElementById('student-health').value.trim();
+
+            if (!id || !name) return;
+
+            const isEdit = editId !== "";
+            const method = isEdit ? 'PUT' : 'POST';
+
+            // Xác định ảnh
+            let photoUrl = "https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=150&auto=format&fit=crop";
+            if (isEdit) {
+                photoUrl = students.find(s => s.id === editId)?.photo || photoUrl;
+            }
+
+            const photoMode = document.getElementById('student-photo-mode').value;
+            if (photoMode === 'esp32' && tempCapturedPhotoUrl !== "") {
+                photoUrl = tempCapturedPhotoUrl;
+            } else if (photoMode === 'upload') {
+                const fileBase64 = await getSelectedPhotoBase64();
+                if (fileBase64) {
+                    photoUrl = fileBase64;
+                }
+            }
+
+            const studentData = {
+                id: isEdit ? editId : id,
+                name,
+                className,
+                photo: photoUrl,
+                status: isEdit ? (students.find(s => s.id === editId)?.status || "Chưa điểm danh") : "Chưa điểm danh",
+                time: isEdit ? (students.find(s => s.id === editId)?.time || "") : "",
+                parentName,
+                parentPhone,
+                healthNote,
+                pickupStatus: isEdit ? (students.find(s => s.id === editId)?.pickupStatus || "Chưa đến") : "Chưa đến"
+            };
+
+            try {
+                const res = await fetch('api/students', {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(studentData)
+                });
+
+                if (res.status === 409) {
+                    alert(currentLang === 'vi' ? "Mã số bé (Mã học sinh) đã tồn tại!" : "Student ID already exists!");
+                    return;
+                }
+
+                alert(currentLang === 'vi' ? "Cập nhật hồ sơ bé thành công!" : "Children profiles updated successfully!");
+                closeStudentModal();
+                await fetchStudents();
+                filterStudentsTable();
+            } catch (err) {
+                console.error("Lỗi khi lưu thông tin học sinh:", err);
+            }
+        }
+
+        function editStudent(id) {
+            const student = students.find(s => s.id === id);
+            if (!student) return;
+
+            document.getElementById('student-modal-title').innerText = currentLang === 'vi' ? "Chỉnh sửa hồ sơ bé" : "Edit Children Profile";
+            document.getElementById('student-edit-id').value = student.id;
+            document.getElementById('student-code').value = student.id;
+            document.getElementById('student-code').disabled = true;
+            document.getElementById('student-name').value = student.name;
+            document.getElementById('student-parent').value = student.parentName || '';
+            document.getElementById('student-phone').value = student.parentPhone || '';
+            document.getElementById('student-health').value = student.healthNote || 'Bình thường';
+            
+            const classSelect = document.getElementById('student-class');
+            classSelect.innerHTML = '';
+            classes.forEach(c => {
+                const selected = c.name === student.className ? 'selected' : '';
+                classSelect.innerHTML += `<option value="${c.name}" ${selected}>${c.name}</option>`;
+            });
+
+            document.getElementById('student-modal').style.display = 'flex';
+        }
+
+        async function deleteStudent(id) {
+            const confirmMsg = currentLang === 'vi' 
+                ? `Bạn có chắc chắn muốn xóa hồ sơ của bé này?` 
+                : `Are you sure you want to delete this child's profile?`;
+            if (!confirm(confirmMsg)) return;
+
+            try {
+                const res = await fetch(`api/students?id=${encodeURIComponent(id)}`, {
+                    method: 'DELETE'
+                });
+
+                if (res.ok) {
+                    alert(currentLang === 'vi' ? "Xóa hồ sơ thành công!" : "Profile deleted successfully!");
+                    await fetchStudents();
+                    filterStudentsTable();
+                }
+            } catch (err) {
+                console.error("Lỗi khi xóa học sinh:", err);
+            }
+        }
+
+        // Voice Welcoming & Welcome Panel Updates
+        function speakWelcome(text) {
+            if (!settings.voiceEnabled) return;
+            try {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = currentLang === 'vi' ? 'vi-VN' : 'en-US';
+                window.speechSynthesis.speak(utterance);
+            } catch (e) {
+                console.error("Lỗi phát giọng nói:", e);
+            }
+        }
+
+        function updateWelcomePanel(student) {
+            if (!student) return;
+            
+            const card = document.getElementById('latest-welcome-card');
+            if (card) {
+                card.style.borderColor = "";
+                card.style.background = "";
+            }
+            
+            document.getElementById('welcome-photo').src = student.photo;
+            document.getElementById('welcome-name').innerText = student.name;
+            document.getElementById('welcome-code').innerText = student.id;
+            document.getElementById('welcome-class').innerText = student.className;
+            document.getElementById('welcome-parent').innerText = student.parentName || '-';
+            document.getElementById('welcome-phone').innerText = student.parentPhone || '-';
+            document.getElementById('welcome-time').innerText = student.time || '-';
+            document.getElementById('welcome-health').innerText = student.healthNote || (currentLang === 'vi' ? 'Bình thường' : 'Normal');
+
+            const badge = document.getElementById('welcome-badge');
+            badge.className = "welcome-status-badge";
+            
+            const welcomeText = document.getElementById('welcome-status-text');
+            if (welcomeText) welcomeText.style.color = "";
+            
+            if (student.pickupStatus === 'Đã đón về') {
+                badge.className = "welcome-status-badge welcome-status-pickup";
+                badge.innerHTML = `<i class="fa-solid fa-person-walking-arrow-loop-left"></i>`;
+                welcomeText.innerText = currentLang === 'vi' ? `Bé đã được đón về lúc ${student.time}` : `Picked up at ${student.time}`;
+            } else if (student.status === 'Có mặt') {
+                badge.className = "welcome-status-badge welcome-status-present";
+                badge.innerHTML = `<i class="fa-solid fa-check"></i>`;
+                welcomeText.innerText = currentLang === 'vi' ? `Bé đã vào lớp lúc ${student.time}` : `Entered class at ${student.time}`;
+            } else if (student.status === 'Đi trễ') {
+                badge.className = "welcome-status-badge welcome-status-late";
+                badge.innerHTML = `<i class="fa-solid fa-clock"></i>`;
+                welcomeText.innerText = currentLang === 'vi' ? `Bé đến lớp muộn lúc ${student.time}` : `Arrived late at ${student.time}`;
+            } else {
+                badge.className = "welcome-status-badge welcome-status-default";
+                badge.innerHTML = `<i class="fa-solid fa-minus"></i>`;
+                welcomeText.innerText = currentLang === 'vi' ? `Đang chờ bé đến lớp...` : `Waiting for child...`;
+            }
+        }
+
+        function showStrangerWarning(log) {
+            document.getElementById('welcome-photo').src = log.photo;
+            document.getElementById('welcome-name').innerText = currentLang === 'vi' ? "CẢNH BÁO: NGƯỜI LẠ" : "WARNING: STRANGER";
+            document.getElementById('welcome-code').innerText = currentLang === 'vi' ? "Chưa đăng ký" : "Unregistered";
+            document.getElementById('welcome-class').innerText = "-";
+            document.getElementById('welcome-parent').innerText = "-";
+            document.getElementById('welcome-phone').innerText = "-";
+            document.getElementById('welcome-time').innerText = log.time || '-';
+            document.getElementById('welcome-health').innerText = "-";
+            
+            const card = document.getElementById('latest-welcome-card');
+            if (card) {
+                card.style.borderColor = "var(--danger)";
+                card.style.background = "rgba(255,59,48,0.05)";
+            }
+            
+            const badge = document.getElementById('welcome-badge');
+            badge.className = "welcome-status-badge welcome-status-absent";
+            badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i>`;
+            
+            const welcomeText = document.getElementById('welcome-status-text');
+            if (welcomeText) {
+                welcomeText.innerText = currentLang === 'vi' 
+                    ? "Khuôn mặt chưa đăng ký trong hệ thống. Từ chối điểm danh!" 
+                    : "Face not registered. Attendance denied!";
+                welcomeText.style.color = "var(--danger)";
+            }
+            
+            speakWelcome(currentLang === 'vi' 
+                ? "Cảnh báo, phát hiện khuôn mặt chưa được đăng ký." 
+                : "Warning, unregistered face detected.");
+        }
+
+        // =====================================================
+        // 6. REPORTS LOGS VIEW
+        // =====================================================
+        function loadReportView() {
+            // Dropdown filter
+            const filterClass = document.getElementById('filter-class');
+            filterClass.innerHTML = '<option value="all">Tất cả các lớp</option>';
+            
+            let filteredClasses = classes;
+            if (currentUser.role === 'teacher') {
+                const assigned = teacherClassAssignments[currentUser.name] || [];
+                filteredClasses = classes.filter(c => assigned.includes(c.name));
+            }
+
+            filteredClasses.forEach(c => {
+                filterClass.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+            });
+
+            renderReportRows();
+        }
+
+        // =====================================================
+        // 7. ROLE MANAGEMENT LOGIC
+        // =====================================================
+        function switchRoleTab(tabId) {
+            document.querySelectorAll('#page-role-management .tab-pane').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('#page-role-management .tab-btn').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            if (tabId === 'tab-teacher-roles') {
+                document.getElementById('btn-tab-teacher-roles').classList.add('active');
+                loadTeacherRolesTable();
+            } else {
+                document.getElementById('btn-tab-parent-roles').classList.add('active');
+                loadParentRolesTable();
+            }
+        }
+
+        function loadRoleManagementView() {
+            switchRoleTab('tab-teacher-roles');
+        }
+
+        function loadTeacherRolesTable() {
+            const tbody = document.getElementById('teacher-roles-tbody');
+            tbody.innerHTML = '';
+
+            // Mẫu danh sách giáo viên
+            const mockTeachers = [
+                { name: "Cô giáo phụ trách lớp", phone: "0987654321" },
+                { name: "Cô Mai Hoa", phone: "0966778899" },
+                { name: "Cô Ngọc Lan", phone: "0955443322" }
+            ];
+
+            mockTeachers.forEach(t => {
+                const assigned = teacherClassAssignments[t.name] || [];
+                
+                // Vẽ Checkbox gán lớp cho giáo viên
+                let checkboxes = '';
+                classes.forEach(c => {
+                    const checked = assigned.includes(c.name) ? 'checked' : '';
+                    checkboxes += `
+                        <label style="margin-right: 15px; font-weight: 700; cursor:pointer;">
+                            <input type="checkbox" style="margin-right: 4px; accent-color: var(--primary);" 
+                                   onchange="updateTeacherAssignment('${t.name}', '${c.name}', this.checked)" ${checked}> ${c.name}
+                        </label>
+                    `;
+                });
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${t.name}</strong></td>
+                        <td>${t.phone}</td>
+                        <td>
+                            <div style="display:flex; flex-wrap:wrap; gap:10px;">
+                                ${checkboxes}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function updateTeacherAssignment(teacherName, className, isChecked) {
+            if (!teacherClassAssignments[teacherName]) {
+                teacherClassAssignments[teacherName] = [];
+            }
+            if (isChecked) {
+                if (!teacherClassAssignments[teacherName].includes(className)) {
+                    teacherClassAssignments[teacherName].push(className);
+                }
+            } else {
+                teacherClassAssignments[teacherName] = teacherClassAssignments[teacherName].filter(c => c !== className);
+            }
+            localStorage.setItem("teacherClassAssignments", JSON.stringify(teacherClassAssignments));
+        }
+
+        function loadParentRolesTable() {
+            // Dropdown chọn bé để liên kết
+            const select = document.getElementById('link-student-id');
+            select.innerHTML = '';
+            students.forEach(s => {
+                select.innerHTML += `<option value="${s.id}">${s.name} (${s.id})</option>`;
+            });
+
+            renderParentLinksTable();
+        }
+
+        function renderParentLinksTable() {
+            const tbody = document.getElementById('parent-links-tbody');
+            tbody.innerHTML = '';
+
+            const keys = Object.keys(parentStudentLinks);
+            if (keys.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text-light); padding:20px;">Chưa có tài khoản phụ huynh nào được liên kết.</td></tr>`;
+                return;
+            }
+
+            keys.forEach(phone => {
+                const kidId = parentStudentLinks[phone];
+                const kid = students.find(s => s.id === kidId);
+                const kidName = kid ? `${kid.name} (${kidId})` : `Mã bé: ${kidId}`;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong style="color: var(--primary-dark);">${phone}</strong></td>
+                        <td>${kidName}</td>
+                        <td>
+                            <button onclick="removeParentLink('${phone}')" class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem; color:var(--danger);"><i class="fa-solid fa-unlink"></i> Hủy liên kết</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function handleParentLinkSubmit(e) {
+            e.preventDefault();
+            const phone = document.getElementById('link-parent-phone').value.trim();
+            const kidId = document.getElementById('link-student-id').value;
+
+            if (!phone) return;
+            parentStudentLinks[phone] = kidId;
+            localStorage.setItem("parentStudentLinks", JSON.stringify(parentStudentLinks));
+
+            document.getElementById('parent-link-form').reset();
+            loadParentRolesTable();
+        }
+
+        function removeParentLink(phone) {
+            if (confirm("Hủy liên kết tài khoản phụ huynh này?")) {
+                delete parentStudentLinks[phone];
+                localStorage.setItem("parentStudentLinks", JSON.stringify(parentStudentLinks));
+                loadParentRolesTable();
+            }
+        }
+
+        // =====================================================
+        // 8. SETTINGS PAGE LOGIC
+        // =====================================================
+        function loadSettingsView() {
+            document.getElementById('setting-theme').value = settings.theme;
+            document.getElementById('setting-grid').value = settings.gridLayout;
+            document.getElementById('setting-lang').value = settings.lang;
+            const startTimeEl = document.getElementById('setting-start-time');
+            if (startTimeEl) startTimeEl.value = settings.startTime;
+            const lateTimeEl = document.getElementById('setting-late-time');
+            if (lateTimeEl) lateTimeEl.value = settings.lateTime;
+            const aiEl = document.getElementById('setting-ai-endpoint');
+            if (aiEl) aiEl.value = settings.aiEndpoint;
+            const espStreamEl = document.getElementById('setting-esp32-stream');
+            if (espStreamEl) espStreamEl.value = settings.espCamStreamUrl || "http://192.168.1.100/stream";
+            const voiceEl = document.getElementById('setting-voice');
+            if (voiceEl) voiceEl.checked = settings.voiceEnabled;
+            const smsEl = document.getElementById('setting-sms');
+            if (smsEl) smsEl.checked = settings.smsEnabled;
+
+            if (currentUser && currentUser.role === 'admin') {
+                checkEspCamConnection();
+                checkAiServerConnection();
+            }
+        }
+
+        async function checkEspCamConnection() {
+            const el = document.getElementById('status-esp-cam');
+            if (!el) return;
+            el.innerText = currentLang === 'vi' ? 'Đang kiểm tra...' : 'Checking...';
+            el.style.background = '#F0F0F0';
+            el.style.color = '#7F8C8D';
+            el.style.borderColor = '#BDC3C7';
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 1200);
+                const res = await fetch('http://192.168.1.100/status', { signal: controller.signal });
+                clearTimeout(timeoutId);
+                if (res.ok) {
+                    setOnlineStatus(el, 'Online');
+                } else {
+                    setOfflineStatus(el, 'Offline');
+                }
+            } catch (err) {
+                setOfflineStatus(el, 'Offline');
+            }
+        }
+
+        async function checkAiServerConnection() {
+            const el = document.getElementById('status-ai-server');
+            if (!el) return;
+            el.innerText = currentLang === 'vi' ? 'Đang kiểm tra...' : 'Checking...';
+            el.style.background = '#F0F0F0';
+            el.style.color = '#7F8C8D';
+            el.style.borderColor = '#BDC3C7';
+
+            const endpoint = document.getElementById('setting-ai-endpoint').value;
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 1200);
+                const res = await fetch(endpoint, { 
+                    method: 'OPTIONS',
+                    signal: controller.signal 
+                });
+                clearTimeout(timeoutId);
+                setOnlineStatus(el, 'Online');
+            } catch (err) {
+                setOfflineStatus(el, 'Offline');
+            }
+        }
+
+        function setOnlineStatus(el, text) {
+            el.innerText = text;
+            el.style.background = '#EBFDF5';
+            el.style.color = '#2EC4B6';
+            el.style.borderColor = 'rgba(46,196,182,0.2)';
+        }
+
+        function setOfflineStatus(el, text) {
+            el.innerText = text;
+            el.style.background = '#FFEBEB';
+            el.style.color = '#FF3B30';
+            el.style.borderColor = 'rgba(255,59,48,0.2)';
+        }
+
+        function toggleEspCamDemo() {
+            const el = document.getElementById('status-esp-cam');
+            if (el.innerText === 'Online') {
+                setOfflineStatus(el, 'Offline');
+            } else {
+                setOnlineStatus(el, 'Online');
+            }
+        }
+
+        function toggleAiServerDemo() {
+            const el = document.getElementById('status-ai-server');
+            if (el.innerText === 'Online') {
+                setOfflineStatus(el, 'Offline');
+            } else {
+                setOnlineStatus(el, 'Online');
+            }
+        }
+
+        function changeThemeSetting() {
+            const theme = document.getElementById('setting-theme').value;
+            settings.theme = theme;
+            document.body.setAttribute("data-theme", theme);
+            localStorage.setItem("settings", JSON.stringify(settings));
+        }
+
+        function changeGridLayoutSetting() {
+            const grid = document.getElementById('setting-grid').value;
+            settings.gridLayout = grid;
+            localStorage.setItem("settings", JSON.stringify(settings));
+        }
+
+        function changeLanguageSetting() {
+            const lang = document.getElementById('setting-lang').value;
+            settings.lang = lang;
+            translateUI(lang);
+            localStorage.setItem("settings", JSON.stringify(settings));
+        }
+
+        async function saveSettings() {
+            const startTimeEl = document.getElementById('setting-start-time');
+            if (startTimeEl) settings.startTime = startTimeEl.value;
+            const lateTimeEl = document.getElementById('setting-late-time');
+            if (lateTimeEl) settings.lateTime = lateTimeEl.value;
+            const aiEl = document.getElementById('setting-ai-endpoint');
+            if (aiEl) settings.aiEndpoint = aiEl.value;
+            const espStreamEl = document.getElementById('setting-esp32-stream');
+            if (espStreamEl) settings.espCamStreamUrl = espStreamEl.value;
+            const voiceEl = document.getElementById('setting-voice');
+            if (voiceEl) settings.voiceEnabled = voiceEl.checked;
+            const smsEl = document.getElementById('setting-sms');
+            if (smsEl) settings.smsEnabled = smsEl.checked;
+            
+            localStorage.setItem("settings", JSON.stringify(settings));
+            
+            // Sync to REST API Server
+            try {
+                await fetch('api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+            } catch(e) {}
+            
+            alert("Đã lưu toàn bộ cấu hình hệ thống KidCheck thành công!");
+        }
+
+        // =====================================================
+        // 9. ANALYTICS & REPORTS UTILS
+        // =====================================================
+        function loadStatisticsView() {
+            // Thiết lập giá trị ngày mặc định nếu chưa có
+            const todayStr = new Date().toISOString().split('T')[0];
+            const firstDayStr = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+            if (!document.getElementById('stat-start-date').value) {
+                document.getElementById('stat-start-date').value = firstDayStr;
+            }
+            if (!document.getElementById('stat-end-date').value) {
+                document.getElementById('stat-end-date').value = todayStr;
+            }
+
+            // Populate select lớp
+            const select = document.getElementById('stat-class-select');
+            if (select && select.children.length <= 1) {
+                if (currentUser.role === 'admin') {
+                    select.innerHTML = `<option value="all">${currentLang === 'vi' ? 'Toàn trường' : 'All School'}</option>`;
+                    classes.forEach(c => {
+                        select.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+                    });
+                } else if (currentUser.role === 'teacher') {
+                    const assigned = teacherClassAssignments[currentUser.name] || [];
+                    select.innerHTML = '';
+                    classes.filter(c => assigned.includes(c.name)).forEach(c => {
+                        select.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+                    });
+                    if (select.children.length === 0) {
+                        select.innerHTML = `<option value="">${currentLang === 'vi' ? 'Không có lớp phụ trách' : 'No Class Assigned'}</option>`;
+                    }
+                }
+            }
+
+            loadStatistics();
+        }
+
+        // BIỂU DIỄN DỮ LIỆU BÁO CÁO NHẬT KÝ ĐƯA ĐÓN
+        function renderReportRows() {
+            const clsFilter = document.getElementById('filter-class').value;
+            const rangeFilter = document.getElementById('filter-range').value;
+            const tbody = document.getElementById('report-table-tbody');
+            tbody.innerHTML = '';
+
+            let filtered = [];
+            const todayStr = new Date().toLocaleDateString('vi-VN');
+
+            // Lọc logs của giáo viên
+            let targetLogs = logs;
+            if (currentUser.role === 'teacher') {
+                const assigned = teacherClassAssignments[currentUser.name] || [];
+                targetLogs = logs.filter(l => assigned.includes(l.className));
+            }
+
+            filtered = targetLogs.map(l => {
+                const stud = students.find(s => s.id === l.id);
+                const hasDate = l.time && l.time.includes(' ');
+                const datePart = hasDate ? l.time.split(' ')[0] : todayStr;
+                const timePart = hasDate ? l.time.split(' ')[1] : (l.time || '--:--');
+                return {
+                    date: datePart,
+                    time: timePart,
+                    id: l.id,
+                    name: l.name,
+                    className: l.className,
+                    status: l.status,
+                    parentName: stud ? stud.parentName : (l.parentName || 'N/A'),
+                    parentPhone: stud ? stud.parentPhone : (l.parentPhone || 'N/A')
+                };
+            });
+
+            // Lọc theo lớp học
+            if (clsFilter !== 'all') {
+                filtered = filtered.filter(item => item.className === clsFilter);
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-light); padding:20px;">Không có bản ghi điểm danh nào phù hợp.</td></tr>`;
+            } else {
+                filtered.forEach(item => {
+                    let badgeClass = 'status-default';
+                    let label = item.status;
+                    if (item.status === 'Có mặt' || item.status === 'Bé đến lớp') {
+                        badgeClass = 'status-present';
+                        label = currentLang === 'vi' ? 'Đến lớp' : 'Arrived';
+                    } else if (item.status === 'Đi trễ' || item.status === 'Bé đến muộn') {
+                        badgeClass = 'status-late';
+                        label = currentLang === 'vi' ? 'Đến muộn' : 'Late';
+                    } else if (item.status === 'Đã đón về') {
+                        badgeClass = 'status-pickup';
+                        label = currentLang === 'vi' ? 'Phụ huynh đón' : 'Picked Up';
+                    }
+
+                    const stud = students.find(s => s.id === item.id);
+                    const pName = stud ? stud.parentName : (item.parentName || 'Chưa rõ');
+                    const pPhone = stud ? stud.parentPhone : (item.parentPhone || 'Chưa rõ');
+
+                    tbody.innerHTML += `
+                        <tr class="${badgeClass}">
+                            <td>${item.date}</td>
+                            <td><strong style="color:var(--primary-dark);">${item.time}</strong></td>
+                            <td>${item.id}</td>
+                            <td><strong>${item.name}</strong></td>
+                            <td><span style="background:#EBF8FF; color:#2B6CB0; padding:4px 8px; border-radius:6px; font-weight:700; font-size:0.8rem;">${item.className}</span></td>
+                            <td><strong>${pName}</strong> (${pPhone})</td>
+                            <td><span class="student-status-badge">${label}</span></td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        // TÍNH TOÁN VÀ VẼ BIỂU ĐỒ THỐNG KÊ CHUYÊN CẦN
+        function loadStatistics() {
+            const classSelect = document.getElementById('stat-class-select').value;
+            const startDateVal = document.getElementById('stat-start-date').value;
+            const endDateVal = document.getElementById('stat-end-date').value;
+
+            // Lấy danh sách các ngày trong khoảng
+            const dates = [];
+            let curr = new Date(startDateVal);
+            const end = new Date(endDateVal);
+            let limit = 60; // Tránh chạy quá nhiều ngày
+            while (curr <= end && limit > 0) {
+                dates.push(curr.toISOString().split('T')[0]);
+                curr.setDate(curr.getDate() + 1);
+                limit--;
+            }
+
+            // Lọc học sinh được tính
+            let targetStudents = students;
+            if (currentUser.role === 'teacher') {
+                const assigned = teacherClassAssignments[currentUser.name] || [];
+                targetStudents = students.filter(s => assigned.includes(s.className));
+                if (classSelect && classSelect !== 'all') {
+                    targetStudents = targetStudents.filter(s => s.className === classSelect);
+                }
+            } else {
+                if (classSelect !== 'all') {
+                    targetStudents = students.filter(s => s.className === classSelect);
+                }
+            }
+
+            let totalExpectedPoints = targetStudents.length * dates.length;
+            let onTimeCount = 0;
+            let lateCount = 0;
+            let absentCount = 0;
+
+            // Với mỗi ngày, kiểm tra log của các học sinh
+            dates.forEach(d => {
+                targetStudents.forEach(student => {
+                    // Tìm các logs của học sinh này trong ngày d
+                    const studentLogs = logs.filter(l => l.id === student.id && l.time && l.time.startsWith(d));
+                    if (studentLogs.length === 0) {
+                        absentCount++;
+                    } else {
+                        const hasLate = studentLogs.some(l => l.status === 'Bé đến muộn' || l.status === 'Đi trễ');
+                        if (hasLate) {
+                            lateCount++;
+                        } else {
+                            onTimeCount++;
+                        }
+                    }
+                });
+            });
+
+            // Cập nhật các thẻ giá trị tỷ lệ
+            if (totalExpectedPoints === 0) {
+                document.getElementById('stat-rate-ontime').innerText = "0%";
+                document.getElementById('stat-rate-late').innerText = "0%";
+                document.getElementById('stat-rate-absent').innerText = "0%";
+            } else {
+                const ontimeRate = Math.round((onTimeCount / totalExpectedPoints) * 100);
+                const lateRate = Math.round((lateCount / totalExpectedPoints) * 100);
+                const absentRate = Math.round((absentCount / totalExpectedPoints) * 100);
+
+                document.getElementById('stat-rate-ontime').innerText = `${ontimeRate}%`;
+                document.getElementById('stat-rate-late').innerText = `${lateRate}%`;
+                document.getElementById('stat-rate-absent').innerText = `${absentRate}%`;
+            }
+
+            // Vẽ biểu đồ cột chuyên cần của từng lớp
+            const chartBox = document.getElementById('statistics-chart-container');
+            chartBox.innerHTML = '';
+
+            let targetClasses = classes;
+            if (currentUser.role === 'teacher') {
+                const assigned = teacherClassAssignments[currentUser.name] || [];
+                targetClasses = classes.filter(c => assigned.includes(c.name));
+                if (classSelect && classSelect !== 'all') {
+                    targetClasses = targetClasses.filter(c => c.name === classSelect);
+                }
+            } else {
+                if (classSelect !== 'all') {
+                    targetClasses = classes.filter(c => c.name === classSelect);
+                }
+            }
+
+            if (targetClasses.length === 0) {
+                chartBox.innerHTML = `<div style="color: var(--text-light); padding:20px;">Không có lớp học phù hợp bộ lọc.</div>`;
+                return;
+            }
+
+            targetClasses.forEach(c => {
+                const classStudents = students.filter(s => s.className === c.name);
+                const classTotalPoints = classStudents.length * dates.length;
+                let classPresentPoints = 0;
+
+                dates.forEach(d => {
+                    classStudents.forEach(student => {
+                        const hasLog = logs.some(l => l.id === student.id && l.time && l.time.startsWith(d) && (l.status === 'Bé đến lớp' || l.status === 'Bé đến muộn' || l.status === 'Có mặt' || l.status === 'Đi trễ'));
+                        if (hasLog) {
+                            classPresentPoints++;
+                        }
+                    });
+                });
+
+                const presentPercent = classTotalPoints > 0 ? Math.round((classPresentPoints / classTotalPoints) * 100) : 0;
+                
+                chartBox.innerHTML += `
+                    <div class="chart-bar-wrapper">
+                        <div style="font-size:0.8rem; margin-bottom:8px; font-weight:700; color:var(--primary-dark);">${presentPercent}%</div>
+                        <div class="chart-bar ${presentPercent > 80 ? 'bar-present' : (presentPercent > 50 ? 'bar-late' : 'bar-absent')}" style="height: ${presentPercent * 2.2}px;"></div>
+                        <div class="chart-label">${c.name}</div>
+                    </div>
+                `;
+            });
+        }
+
+        // ĐĂNG KÝ CÁC EVENT LISTENERS CHO MÔ PHỎNG ĐIỂM DANH VÀ LỌC BÁO CÁO
+        document.addEventListener('DOMContentLoaded', () => {
+            // Lọc báo cáo nhật ký đưa đón
+            const btnApply = document.getElementById('btn-apply-filter');
+            if (btnApply) {
+                btnApply.addEventListener('click', () => {
+                    renderReportRows();
+                });
+            }
+
+            const btnExport = document.getElementById('btn-export-excel');
+            if (btnExport) {
+                btnExport.addEventListener('click', () => {
+                    alert(currentLang === 'vi' ? "Xuất dữ liệu báo cáo chuyên cần thành công!" : "Attendance report exported to Excel successfully!");
+                });
+            }
+
+            // Nút mô phỏng Check-in (Bé đến lớp)
+            const btnSimIn = document.getElementById('btn-simulate-in');
+            if (btnSimIn) {
+                btnSimIn.addEventListener('click', async () => {
+                    const classStudents = students.filter(s => s.className === currentLiveClass);
+                    const unpresented = classStudents.filter(s => s.status === 'Chưa điểm danh' && s.pickupStatus !== 'Đã đón về');
+                    
+                    if (unpresented.length === 0) {
+                        alert(currentLang === 'vi' ? "Tất cả các bé của lớp này đã có mặt ở trường!" : "All children in this class are already present at school!");
+                        return;
+                    }
+                    const student = unpresented[Math.floor(Math.random() * unpresented.length)];
+                    
+                    const now = new Date();
+                    const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                    
+                    const targetClassObj = classes.find(c => c.name === student.className);
+                    const classLateTime = (targetClassObj && targetClassObj.lateTime) ? targetClassObj.lateTime : '08:15';
+                    const [lateHour, lateMin] = classLateTime.split(':').map(Number);
+                    const isLate = (now.getHours() > lateHour) || (now.getHours() === lateHour && now.getMinutes() >= lateMin);
+                    
+                    student.status = isLate ? 'Đi trễ' : 'Có mặt';
+                    student.time = timeStr;
+                    student.pickupStatus = 'Đang ở lớp';
+                    
+                    await fetch('api/students', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(student)
+                    });
+
+                    const logText = isLate ? 'Bé đến muộn' : 'Bé đến lớp';
+                    await logOverride(student, logText, timeStr);
+                    
+                    const welcomeMsg = isLate 
+                        ? (currentLang === 'vi' ? `Chào mừng bé ${student.name} đã đến lớp. Hôm nay bé đi học hơi muộn nhé.` : `Welcome baby ${student.name} to class. Today you are arriving a bit late.`)
+                        : (currentLang === 'vi' ? `Chào mừng bé ${student.name} đã đến lớp học vui vẻ!` : `Welcome baby ${student.name} to our happy classroom!`);
+                    speakWelcome(welcomeMsg);
+                    
+                    if (document.getElementById('setting-sms') && document.getElementById('setting-sms').checked) {
+                        console.log(`[SMS Phụ Huynh]: Bé ${student.name} đã điểm danh vào lớp lúc ${timeStr}.`);
+                    }
+
+                    await fetchStudents();
+                    await fetchLogs();
+                    loadLiveAttendanceGrid();
+                    updateWelcomePanel(student);
+                });
+            }
+
+            // Nút mô phỏng Check-out (Đón bé về)
+            const btnSimOut = document.getElementById('btn-simulate-out');
+            if (btnSimOut) {
+                btnSimOut.addEventListener('click', async () => {
+                    const classStudents = students.filter(s => s.className === currentLiveClass);
+                    const atSchool = classStudents.filter(s => s.pickupStatus === 'Đang ở lớp');
+                    
+                    if (atSchool.length === 0) {
+                        alert(currentLang === 'vi' ? "Hiện tại không có bé nào của lớp này đang ở trường!" : "No children from this class are currently at school!");
+                        return;
+                    }
+                    const student = atSchool[Math.floor(Math.random() * atSchool.length)];
+                    
+                    const now = new Date();
+                    const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                    
+                    student.pickupStatus = 'Đã đón về';
+                    student.time = timeStr;
+                    
+                    await fetch('api/students', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(student)
+                    });
+
+                    await logOverride(student, 'Đã đón về', timeStr);
+                    
+                    const goodbyeMsg = currentLang === 'vi' 
+                        ? `Tạm biệt bé ${student.name}. Bé đã được phụ huynh đón về an toàn. Hẹn gặp lại con ngày mai!` 
+                        : `Goodbye baby ${student.name}. You have been picked up safely by your parents. See you tomorrow!`;
+                    speakWelcome(goodbyeMsg);
+                    
+                    if (document.getElementById('setting-sms') && document.getElementById('setting-sms').checked) {
+                        console.log(`[SMS Phụ Huynh]: Bé ${student.name} đã được đón về an toàn lúc ${timeStr}.`);
+                    }
+
+                    await fetchStudents();
+                    await fetchLogs();
+                    loadLiveAttendanceGrid();
+                    updateWelcomePanel(student);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
