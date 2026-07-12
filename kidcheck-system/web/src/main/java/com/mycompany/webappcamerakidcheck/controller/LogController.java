@@ -54,12 +54,49 @@ public class LogController extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        String exportParam = request.getParameter("export");
+        if ("true".equalsIgnoreCase(exportParam)) {
+            response.setContentType("text/csv; charset=UTF-8");
+            response.setCharacterEncoding("UTF-8");
+            response.setHeader("Content-Disposition", "attachment; filename=\"BaoCaoChuyenCan.csv\"");
+            
+            try (PrintWriter out = response.getWriter()) {
+                // Ghi UTF-8 BOM cho Excel
+                out.write('\uFEFF');
+                
+                // Tiêu đề cột
+                out.println("Mã học sinh,Họ và Tên,Lớp học,Trạng thái,Thời gian,Phụ huynh,Số điện thoại");
+                
+                for (AttendanceLog log : localBackupList) {
+                    out.println(String.format("%s,%s,%s,%s,%s,%s,%s",
+                        escapeCsv(log.getId()),
+                        escapeCsv(log.getName()),
+                        escapeCsv(log.getClassName()),
+                        escapeCsv(log.getStatus()),
+                        escapeCsv(log.getTime()),
+                        escapeCsv(log.getParentName()),
+                        escapeCsv(log.getParentPhone())
+                    ));
+                }
+                out.flush();
+            }
+            return;
+        }
+
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         try (PrintWriter out = response.getWriter()) {
             out.print(gson.toJson(localBackupList));
             out.flush();
         }
+    }
+
+    private String escapeCsv(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
     }
 
     @Override

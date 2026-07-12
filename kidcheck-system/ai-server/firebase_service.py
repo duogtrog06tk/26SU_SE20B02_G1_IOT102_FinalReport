@@ -51,6 +51,18 @@ class FirebaseService:
         logger.info(f"Đã đăng ký AI-Server IP lên Firebase: {url}")
         return url
 
+    def save_device_status(self, device_id, ip, status="ONLINE"):
+        """Lưu IP và trạng thái của ESP32-CAM lên Firebase."""
+        ref = db.reference("System/ESP32_CAM_Status")
+        ref.set({
+            "device_id": device_id,
+            "ip": ip,
+            "status": status,
+            "last_seen": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        })
+        logger.info(f"Đã lưu trạng thái ESP32-CAM lên Firebase: {device_id} | {ip} | {status}")
+
+
     def should_skip_duplicate(self, student_id):
         """
         Kiểm tra xem học sinh này có vừa được điểm danh trong vài giây gần đây không.

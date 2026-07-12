@@ -172,6 +172,10 @@ def device_boot():
     device_id = data.get("device_id", "unknown")
     device_ip = data.get("ip", "unknown")
     logger.info(f"Thiết bị {device_id} online tại IP {device_ip}")
+    try:
+        firebase_service.save_device_status(device_id, device_ip, "ONLINE")
+    except Exception as e:
+        logger.error(f"Lỗi lưu trạng thái thiết bị lên Firebase: {e}")
     return jsonify({"status": "ok"}), 200
 
 def get_local_ip():
