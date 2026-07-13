@@ -13,6 +13,7 @@ import logging
 import cv2
 import numpy as np
 from flask import Flask, request, jsonify
+from flask_cors import CORS  # FIX #2: Cho phép Web App gọi API qua trình duyệt không bị chặn CORS
 
 from face_service import FaceService
 from firebase_service import FirebaseService
@@ -26,6 +27,7 @@ logging.basicConfig(
 logger = logging.getLogger("app")
 
 app = Flask(__name__)
+CORS(app)  # FIX #2: Áp dụng CORS cho toàn bộ Flask app
 
 # Khởi tạo 1 lần duy nhất khi server start — load known_faces và kết nối Firebase
 # Không khởi tạo lại mỗi lần có request, vì encode ảnh tốn thời gian

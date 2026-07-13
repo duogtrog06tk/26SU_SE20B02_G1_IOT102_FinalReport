@@ -3,6 +3,7 @@
 // ============================================================================
 #include "esp_camera.h"
 #include <WiFi.h>
+#include <WiFiClientSecure.h>  // FIX #4: Cần thiết để gọi HTTPS đến Firebase không bị lỗi SSL
 #include <HTTPClient.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
@@ -133,9 +134,13 @@ void showMessage(const char* line1, const char* line2) {
 // ============================================================================
 bool getAiServerIP() {
   if (WiFi.status() == WL_CONNECTED) {
+    // FIX #4: Dùng WiFiClientSecure với setInsecure() để gọi HTTPS đến Firebase
+    // Trên ESP32 core mới, http.begin(url) với HTTPS sẽ thất bại do lỗi bắt tay SSL
+    WiFiClientSecure client;
+    client.setInsecure();  // Bỏ qua xác thực chứng chỉ SSL (phù hợp cho LAN nội bộ)
     HTTPClient http;
     String url = "https://" + String(firebase_host) + "/System/AI_Server_IP.json";
-    http.begin(url);
+    http.begin(client, url);
 
     int httpResponseCode = http.GET();
     if (httpResponseCode > 0) {
@@ -215,6 +220,8 @@ bool sendImageToRegister(camera_fb_t* fb, String student_id, int photoIndex) {
 }
 // 3.1 Hàm xử lý lệnh chụp LIÊN TIẾP 3 TẤM phục vụ đăng ký học sinh mới từ Web App
 void handleCaptureRegister() {
+  // FIX #2c: Thêm CORS header để trình duyệt không bị chặn khi gọi từ Web App
+  server.sendHeader("Access-Control-Allow-Origin", "*");
   if (!server.hasArg("student_id")) {
     server.send(400, "text/plain", "Thieu tham so student_id");
     return;
@@ -253,6 +260,8 @@ void handleCaptureRegister() {
 
 // 3.2 Hàm điều khiển trạng thái LED đỏ trợ sáng theo tham số URL (?state=1 hoặc ?state=0)
 void handleLEDControl() {
+  // FIX #2c: CORS header
+  server.sendHeader("Access-Control-Allow-Origin", "*");
   if (server.hasArg("state")) {
     String state = server.arg("state");
     if (state == "1") {
@@ -269,6 +278,8 @@ void handleLEDControl() {
 
 // 3.3 Hàm nhận lệnh khởi động lại phần cứng thiết bị từ xa
 void handleReboot() {
+  // FIX #2c: CORS header
+  server.sendHeader("Access-Control-Allow-Origin", "*");
   server.send(200, "text/plain", "Mach dang khoi dong lai...");
   delay(1000);
   ESP.restart();  // Lệnh reset cứng hệ thống của chip ESP32
@@ -277,9 +288,12 @@ void handleReboot() {
 // 3.4 Hàm đọc mật khẩu AP mới từ Firebase về để cập nhật (Đồng bộ từ Web App)
 void updateApConfigFromFirebase() {
   if (WiFi.status() == WL_CONNECTED) {
+    // FIX #4: Dùng WiFiClientSecure với setInsecure() để tránh lỗi SSL Handshake
+    WiFiClientSecure client;
+    client.setInsecure();
     HTTPClient http;
     String url = "https://" + String(firebase_host) + "/System/Device_Config.json";
-    http.begin(url);
+    http.begin(client, url);
 
     int httpResponseCode = http.GET();
     if (httpResponseCode > 0) {
@@ -532,6 +546,37 @@ void setup() {
     Serial.print("[AP] Dia chi IP truy cap Portal: ");
     Serial.println(WiFi.softAPIP());
 
+    // FIX #5: Gọi WiFi.begin() không tham số để ESP32 đọc credentials đã lưu
+    // trong bộ nhớ Flash (NVS) và tự kết nối lại mạng WiFi cũ sau khi khởi động lại
+    // Điều này tránh phải cấu hình WiFi lại từ đầu mỗi lần mất điện
+    Serial.println("[WiFi] Dang thu ket noi lai WiFi da luu...");
+    WiFi.begin();  // FIX #5: Không truyền tham số = dùng credentials đã lưu trong NVS
+
+    // Chờ tối đa 8 giây (16 x 500ms) để thiết bị kết nối lại WiFi đã lưu
+    int wifiRetry = 0;
+    while (WiFi.status() != WL_CONNECTED && wifiRetry < 16) {
+        delay(500);
+        wifiRetry++;
+        Serial.print(".");
+    }
+    Serial.println();
+
+    if (WiFi.status() == WL_CONNECTED) {
+        // Kết nối thành công từ NVS — lấy IP AI Server và báo cáo trạng thái ngay
+        showMessage("WiFi OK!", WiFi.localIP().toString().c_str());
+        Serial.println("[WiFi] Ket noi lai thanh cong: " + WiFi.localIP().toString());
+        delay(1500);
+        int retry = 0;
+        while (!getAiServerIP() && retry < 5) { delay(1000); retry++; }
+        if (ai_server_base_url != "") {
+            sendBootStatus();
+        }
+    } else {
+        // Không có WiFi đã lưu hoặc mạng không khả dụng — tiếp tục chế độ AP Portal
+        Serial.println("[WiFi] Khong tim thay WiFi da luu. Vao che do AP Portal.");
+        showMessage("Mo Cong Cau Hinh", "Ssid:Cam-Setup");
+    }
+
     // Kích hoạt DNS Server điều hướng toàn bộ truy cập kiểm tra về IP nội bộ (Captive Portal)
     dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
 
@@ -553,7 +598,6 @@ void setup() {
     Serial.println("[HTTP] Local Web Server dang chay o cong 80.");
 
     // Thông báo giao diện LCD sẵn sàng cho giai đoạn cấu cấu hình
-    showMessage("Mo Cong Cau Hinh", "Ssid:Cam-Setup");
     alertBuzzer(500, 1); // Bíp 1 tiếng dài hoàn tất setup ban đầu
 }
 

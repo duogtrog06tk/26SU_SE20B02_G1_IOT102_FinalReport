@@ -720,9 +720,6 @@
                         </div>
                     </div>
                     
-                    <div style="margin-top: 30px; display: flex; justify-content: flex-end;">
-                        <button id="btn-save-settings" class="btn btn-primary" onclick="saveSettings()"><i class="fa-solid fa-floppy-disk"></i> <span data-i18n="btn-save-settings">Lưu cấu hình</span></button>
-                    </div>
                 </div>
             </section>
 
@@ -1409,14 +1406,11 @@
         let classes = [];
         let logs = [];
         let settings = { 
-            startTime: "07:00", 
-            lateTime: "08:15", 
-            aiEndpoint: "http://192.168.1.50:5000/api/recognize", 
-            voiceEnabled: true, 
-            smsEnabled: true,
             theme: "light",
             gridLayout: "4",
             lang: "vi"
+            // FIX #6: Đã xóa startTime, lateTime, aiEndpoint, voiceEnabled, smsEnabled
+            // vì chúng không được đồng bộ đầy đủ qua backend Java (Settings.java chỉ có 3 trường)
         };
         
         let currentUser = null; // role: admin, teacher, parent, guest
@@ -1493,24 +1487,15 @@
                 console.error("Lỗi API logs, dùng dữ liệu dự phòng:", err);
             }
         }
-        async function fetchSettings() {
-            try {
-                const res = await fetch('api/settings');
-                const data = await res.json();
-                if (data && data.startTime) {
-                    settings = { ...settings, ...data };
-                }
-            } catch (err) {
-                console.error("Lỗi API settings:", err);
-            }
-        }
+        // FIX #6: Đã xóa hàm fetchSettings() vì Settings backend Java không đồng bộ được
+        // các trường UI (theme, gridLayout, lang). Các settings này chỉ lưu qua localStorage.
 
         // Tải trang công khai Landing View đầu tiên
         window.addEventListener('load', async () => {
             await fetchStudents();
             await fetchClasses();
             await fetchLogs();
-            await fetchSettings();
+            // FIX #6: Bỏ fetchSettings() vì không đồng bộ được với schema backend
             
             showLandingView();
             initLandingSlider();
@@ -3298,16 +3283,8 @@
             document.getElementById('setting-theme').value = settings.theme;
             document.getElementById('setting-grid').value = settings.gridLayout;
             document.getElementById('setting-lang').value = settings.lang;
-            const startTimeEl = document.getElementById('setting-start-time');
-            if (startTimeEl) startTimeEl.value = settings.startTime;
-            const lateTimeEl = document.getElementById('setting-late-time');
-            if (lateTimeEl) lateTimeEl.value = settings.lateTime;
-            const aiEl = document.getElementById('setting-ai-endpoint');
-            if (aiEl) aiEl.value = settings.aiEndpoint;
-            const voiceEl = document.getElementById('setting-voice');
-            if (voiceEl) voiceEl.checked = settings.voiceEnabled;
-            const smsEl = document.getElementById('setting-sms');
-            if (smsEl) smsEl.checked = settings.smsEnabled;
+            // FIX #6: Đã xóa các dòng điền giá trị setting-start-time, setting-late-time,
+            // setting-ai-endpoint, setting-voice, setting-sms vì các trường này đã bị xóa khỏi UI
 
             if (currentUser && currentUser.role === 'admin') {
                 await fetchFirebaseSystemConfigs();
@@ -3461,31 +3438,9 @@
             localStorage.setItem("settings", JSON.stringify(settings));
         }
 
-        async function saveSettings() {
-            const startTimeEl = document.getElementById('setting-start-time');
-            if (startTimeEl) settings.startTime = startTimeEl.value;
-            const lateTimeEl = document.getElementById('setting-late-time');
-            if (lateTimeEl) settings.lateTime = lateTimeEl.value;
-            const aiEl = document.getElementById('setting-ai-endpoint');
-            if (aiEl) settings.aiEndpoint = aiEl.value;
-            const voiceEl = document.getElementById('setting-voice');
-            if (voiceEl) settings.voiceEnabled = voiceEl.checked;
-            const smsEl = document.getElementById('setting-sms');
-            if (smsEl) settings.smsEnabled = smsEl.checked;
-            
-            localStorage.setItem("settings", JSON.stringify(settings));
-            
-            // Sync to REST API Server
-            try {
-                await fetch('api/settings', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(settings)
-                });
-            } catch(e) {}
-            
-            alert("Đã lưu toàn bộ cấu hình hệ thống KidCheck thành công!");
-        }
+        // FIX #6: Đã xóa hàm saveSettings(). Chức năng save thông qua backend Java bị
+        // mất dữ liệu do Settings.java không có các trường voiceEnabled/smsEnabled/theme/lang.
+        // Các settings Theme/Grid/Language vẫn được lưu tự động qua localStorage khi thay đổi.
 
         // =====================================================
         // 9. ANALYTICS & REPORTS UTILS

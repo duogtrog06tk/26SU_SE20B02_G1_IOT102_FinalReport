@@ -26,16 +26,44 @@ public class LogController extends HttpServlet {
     @Override
     public void init() throws ServletException {
         try {
-            DatabaseReference ref = FirebaseConfig.getDatabase().getReference("logs");
+            // FIX #1: AI Server ghi điểm danh vào nhánh "attendance/{date}/{student_id}",
+            // không phải "logs/". Listener này đọc toàn bộ nhánh "attendance/",
+            // duyệt qua từng ngày rồi từng học sinh để ghép vào danh sách log.
+            DatabaseReference ref = FirebaseConfig.getDatabase().getReference("attendance");
             ref.addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {
                     if (dataSnapshot.exists()) {
                         localBackupList.clear();
-                        for (DataSnapshot postSnapshot : dataSnapshot.getChildren()) {
-                            AttendanceLog log = postSnapshot.getValue(AttendanceLog.class);
-                            if (log != null) {
-                                localBackupList.add(log);
+                        // Cấp 1: ngày (VD: "2026-07-13")
+                        for (DataSnapshot dateSnapshot : dataSnapshot.getChildren()) {
+                            // Cấp 2: student_id (VD: "HS001_NguyenAn")
+                            for (DataSnapshot studentSnapshot : dateSnapshot.getChildren()) {
+                                try {
+                                    String studentName = studentSnapshot.child("student_name").getValue(String.class);
+                                    String timestamp   = studentSnapshot.child("timestamp").getValue(String.class);
+                                    String status      = studentSnapshot.child("status").getValue(String.class);
+                                    String studentId   = studentSnapshot.getKey();
+
+                                    AttendanceLog log = new AttendanceLog();
+                                    log.setId(studentId);
+                                    log.setName(studentName != null ? studentName : studentId);
+                                    log.setStatus(status != null ? status : "present");
+                                    // Ghép ngày + giờ thành chuỗi đầy đủ cho UI
+                                    String dateStr = dateSnapshot.getKey();
+                                    log.setTime(dateStr + " " + (timestamp != null ? timestamp : "--:--"));
+                                    log.setClassName("");
+                                    log.setPhoto("");
+                                    log.setParentName("");
+                                    log.setParentPhone("");
+                                    log.setPickupStatus("");
+
+                                    if (studentId != null) {
+                                        localBackupList.add(log);
+                                    }
+                                } catch (Exception ex) {
+                                    System.err.println("Lỗi parse attendance record: " + ex.getMessage());
+                                }
                             }
                         }
                     }
@@ -43,11 +71,11 @@ public class LogController extends HttpServlet {
 
                 @Override
                 public void onCancelled(DatabaseError databaseError) {
-                    System.err.println("Firebase Log sync cancelled: " + databaseError.getMessage());
+                    System.err.println("Firebase Attendance sync cancelled: " + databaseError.getMessage());
                 }
             });
         } catch (Exception e) {
-            System.err.println("Không thể thiết lập lắng nghe Logs trên Firebase: " + e.getMessage());
+            System.err.println("Không thể thiết lập lắng nghe Attendance trên Firebase: " + e.getMessage());
         }
     }
 
