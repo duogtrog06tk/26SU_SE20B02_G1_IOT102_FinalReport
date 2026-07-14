@@ -22,56 +22,236 @@ class FirebaseService:
         # _last_checkin_time: lưu lần điểm danh gần nhất của mỗi student_id
         # dùng để chống ghi trùng liên tục (cooldown) — xem hàm should_skip_duplicate()
         self._last_checkin_time = {}
+        self.use_rest_fallback = False
+        self.database_url = FIREBASE_DATABASE_URL
+        if not self.database_url.endswith("/"):
+            self.database_url += "/"
         self._init_firebase()
 
     def _init_firebase(self):
         """
         Khởi tạo kết nối Firebase 1 lần duy nhất khi server start.
-        Input: không có — đọc file serviceAccountKey.json từ config.py
-        Output: không trả về, nhưng nếu lỗi sẽ raise exception ngay khi server
-                khởi động (cố ý — để biết ngay nếu thiếu file key, không để
-                lỗi xuất hiện âm thầm lúc đang chạy).
+        Nếu lỗi xác thực (do IAM propagation hoặc key lỗi), tự động kích hoạt chế độ REST Fallback.
         """
         try:
             cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
-            firebase_admin.initialize_app(cred, {"databaseURL": FIREBASE_DATABASE_URL})
-            logger.info("Kết nối Firebase thành công")
+            firebase_admin.initialize_app(cred, {"databaseURL": self.database_url})
+            logger.info("Kết nối Firebase Admin SDK thành công")
         except FileNotFoundError:
-            logger.error(
+            logger.warning(
                 f"Không tìm thấy file {FIREBASE_CREDENTIALS_PATH}. "
-                "Tải file này từ Firebase Console > Project Settings > Service Accounts."
+                "Sẽ sử dụng chế độ REST API Fallback."
             )
-            raise
+            self.use_rest_fallback = True
+        except Exception as e:
+            logger.warning(
+                f"Không thể khởi tạo Firebase Admin SDK ({e}). "
+                "Sẽ sử dụng chế độ REST API Fallback."
+            )
+            self.use_rest_fallback = True
 
     def register_server_ip(self, ip, port=5000):
         """Ghi địa chỉ IP:port của AI-server lên Firebase để ESP32 tự động đọc."""
         url = f"http://{ip}:{port}"
-        ref = db.reference("System/AI_Server_IP")
-        ref.set({"url": url})
-        logger.info(f"Đã đăng ký AI-Server IP lên Firebase: {url}")
+        if self.use_rest_fallback:
+            try:
+                import requests
+                req_url = f"{self.database_url}System/AI_Server_IP.json"
+                r = requests.put(req_url, json={"url": url}, timeout=5)
+                if r.status_code == 200:
+                    logger.info(f"REST Fallback: Đã đăng ký AI-Server IP lên Firebase: {url}")
+                else:
+                    logger.error(f"REST Fallback Error {r.status_code}: {r.text}")
+            except Exception as e:
+                logger.error(f"Lỗi khi REST đăng ký IP: {e}")
+        else:
+            try:
+                ref = db.reference("System/AI_Server_IP")
+                ref.set({"url": url})
+                logger.info(f"Đã đăng ký AI-Server IP lên Firebase: {url}")
+            except Exception as e:
+                logger.warning(f"Admin SDK đăng ký IP thất bại ({e}). Tự động chuyển sang REST...")
+                self.use_rest_fallback = True
+                self.register_server_ip(ip, port)
         return url
 
-    def save_device_status(self, device_id, ip, status="ONLINE"):
-        """Lưu IP và trạng thái của ESP32-CAM lên Firebase."""
-        ref = db.reference("System/ESP32_CAM_Status")
-        ref.set({
+    def save_device_status(self, device_id, ip, status="ONLINE", ssid="unknown", rssi=0):
+        """Lưu IP, Wi-Fi SSID, RSSI và trạng thái của ESP32-CAM lên Firebase."""
+        data = {
             "device_id": device_id,
             "ip": ip,
             "status": status,
+            "ssid": ssid,
+            "rssi": rssi,
             "last_seen": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        })
-        logger.info(f"Đã lưu trạng thái ESP32-CAM lên Firebase: {device_id} | {ip} | {status}")
+        }
+        if self.use_rest_fallback:
+            try:
+                import requests
+                req_url = f"{self.database_url}System/ESP32_CAM_Status.json"
+                r = requests.put(req_url, json=data, timeout=5)
+                if r.status_code == 200:
+                    logger.info(f"REST Fallback: Đã lưu trạng thái ESP32-CAM: {device_id} | SSID: {ssid}")
+                else:
+                    logger.error(f"REST Fallback Error {r.status_code}: {r.text}")
+            except Exception as e:
+                logger.error(f"Lỗi khi REST lưu trạng thái: {e}")
+        else:
+            try:
+                ref = db.reference("System/ESP32_CAM_Status")
+                ref.set(data)
+                logger.info(f"Đã lưu trạng thái ESP32-CAM lên Firebase: {device_id} | {ip} | {status} | SSID: {ssid} ({rssi} dBm)")
+            except Exception as e:
+                logger.warning(f"Admin SDK lưu trạng thái thất bại ({e}). Tự động chuyển sang REST...")
+                self.use_rest_fallback = True
+                self.save_device_status(device_id, ip, status, ssid, rssi)
 
+    def sync_student_photos(self, known_faces_dir):
+        """Tải, giải mã và đồng bộ tất cả ảnh học sinh từ Firebase về thư mục known_faces/ cục bộ."""
+        import os
+        import base64
+        import shutil
+        import requests
+
+        logger.info("Đang bắt đầu đồng bộ ảnh học sinh từ Firebase...")
+        students = {}
+        if self.use_rest_fallback:
+            try:
+                req_url = f"{self.database_url}students.json"
+                r = requests.get(req_url, timeout=5)
+                if r.status_code == 200:
+                    data = r.json()
+                    # Nếu data là None (Firebase trống), gán students = {}
+                    students = data if data is not None else {}
+                else:
+                    logger.error(f"REST Fallback Error {r.status_code}: {r.text}")
+                    logger.error("Không thể lấy danh sách học sinh. Hủy đồng bộ để tránh xóa nhầm ảnh cục bộ.")
+                    return
+            except Exception as e:
+                logger.error(f"Lỗi khi REST đồng bộ ảnh: {e}")
+                return
+        else:
+            try:
+                ref = db.reference("students")
+                students = ref.get() or {}
+            except Exception as e:
+                logger.warning(f"Admin SDK đồng bộ thất bại ({e}). Tự động chuyển sang REST...")
+                self.use_rest_fallback = True
+                self.sync_student_photos(known_faces_dir)
+                return
+
+        try:
+            if not os.path.exists(known_faces_dir):
+                os.makedirs(known_faces_dir)
+
+            # Lấy IP cục bộ để tự cập nhật lại link ảnh chính thức (tránh circular import với app.py)
+            import socket
+            s_temp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            try:
+                s_temp.connect(("8.8.8.8", 80))
+                local_ip = s_temp.getsockname()[0]
+            except Exception:
+                local_ip = "127.0.0.1"
+            finally:
+                s_temp.close()
+
+            # 1. Đổi tên thư mục tạm (ví dụ TEMP_HS sang mã số thực sự của bé)
+            for student_key, student_data in students.items():
+                if not student_data:
+                    continue
+                student_id = student_data.get("id")
+                photo = student_data.get("photo")
+                if not student_id or not photo:
+                    continue
+
+                if "/faces/" in photo:
+                    source_id = photo.split("/faces/")[-1].split("?")[0]
+                    if source_id != student_id:
+                        source_dir = os.path.join(known_faces_dir, source_id)
+                        student_dir = os.path.join(known_faces_dir, student_id)
+                        if os.path.exists(source_dir) and not os.path.exists(student_dir):
+                            logger.info(f"Đang đổi tên thư mục ảnh từ {source_id} sang {student_id}")
+                            try:
+                                shutil.move(source_dir, student_dir)
+                                new_photo_url = f"http://{local_ip}:5000/faces/{student_id}"
+                                
+                                if self.use_rest_fallback:
+                                    req_url = f"{self.database_url}students/{student_id}.json"
+                                    requests.patch(req_url, json={"photo": new_photo_url}, timeout=5)
+                                else:
+                                    db.reference(f"students/{student_id}").update({
+                                        "photo": new_photo_url
+                                    })
+                                student_data["photo"] = new_photo_url
+                            except Exception as move_err:
+                                logger.error(f"Lỗi đổi tên thư mục: {move_err}")
+
+            # 2. Tải và đồng bộ ảnh mới/chưa có về máy
+            for student_key, student_data in students.items():
+                if not student_data:
+                    continue
+                student_id = student_data.get("id")
+                photo = student_data.get("photo")
+                if not student_id or not photo:
+                    continue
+
+                student_dir = os.path.join(known_faces_dir, student_id)
+                os.makedirs(student_dir, exist_ok=True)
+
+                target_file = os.path.join(student_dir, f"{student_id}.jpg")
+                
+                if os.path.exists(target_file) or len(os.listdir(student_dir)) > 0:
+                    continue
+
+                try:
+                    file_data = None
+                    if photo.startswith("data:image"):
+                        if "," in photo:
+                            _, encoded = photo.split(",", 1)
+                        else:
+                            encoded = photo
+                        file_data = base64.b64decode(encoded)
+                    elif photo.startswith("http"):
+                        r = requests.get(photo, timeout=5)
+                        if r.status_code == 200:
+                            file_data = r.content
+
+                    if file_data:
+                        with open(target_file, "wb") as f:
+                            f.write(file_data)
+                        logger.info(f"Đã đồng bộ ảnh cho học sinh {student_id}")
+                except Exception as e:
+                    logger.error(f"Lỗi tải/giải mã ảnh cho {student_id}: {e}")
+
+            # 3. Xóa các thư mục cục bộ của học sinh đã bị xóa khỏi Firebase
+            # Chỉ xóa khi node trên Firebase có field 'id' đầy đủ (tránh race condition khi Java chưa kịp ghi xong)
+            valid_firebase_ids = set()
+            for k, v in students.items():
+                if isinstance(v, dict) and v.get("id"):
+                    valid_firebase_ids.add(v.get("id"))
+                elif isinstance(v, dict):
+                    # Node tồn tại nhưng chưa có id — có thể là AI Server vừa PATCH photo, chưa có Java lưu
+                    # Giữ lại key này để không xóa nhầm
+                    valid_firebase_ids.add(k)
+
+            if os.path.exists(known_faces_dir):
+                local_folders = os.listdir(known_faces_dir)
+                for folder in local_folders:
+                    folder_path = os.path.join(known_faces_dir, folder)
+                    if os.path.isdir(folder_path):
+                        if folder == "TEMP_HS":
+                            continue
+                        # Chỉ xóa nếu thư mục không có trong Firebase và không có trong cả key lần id
+                        if folder not in students and folder not in valid_firebase_ids:
+                            logger.info(f"Học sinh {folder} đã bị xóa trên Firebase. Đang xóa thư mục cục bộ...")
+                            try:
+                                shutil.rmtree(folder_path)
+                            except Exception as delete_err:
+                                logger.error(f"Lỗi xóa thư mục cục bộ của {folder}: {delete_err}")
+        except Exception as e:
+            logger.error(f"Lỗi đồng bộ danh sách học sinh từ Firebase: {e}")
 
     def should_skip_duplicate(self, student_id):
-        """
-        Kiểm tra xem học sinh này có vừa được điểm danh trong vài giây gần đây không.
-        Tránh trường hợp học sinh đứng trước camera 2-3 giây, hệ thống ghi
-        điểm danh 5-6 lần liên tiếp lên Firebase.
-
-        Input: student_id (str)
-        Output: True nếu nên bỏ qua (vừa ghi gần đây), False nếu nên ghi tiếp
-        """
         now = time.time()
         last_time = self._last_checkin_time.get(student_id)
 
@@ -83,27 +263,6 @@ class FirebaseService:
         return False
 
     def write_attendance(self, student_id, image_url=None):
-        """
-        Ghi 1 lượt điểm danh vào Firebase.
-
-        Cấu trúc dữ liệu trong Firebase:
-            attendance/
-              2026-06-23/
-                HS001_NguyenAn/
-                  student_name: "HS001_NguyenAn"
-                  timestamp: "08:12:34"
-                  status: "late"
-                  image_url: "..."
-
-        Input:
-            student_id: mã định danh học sinh (tên thư mục trong known_faces/)
-            image_url: link ảnh chụp lúc điểm danh (có thể None nếu chưa upload ảnh)
-
-        Output: dict dữ liệu vừa ghi — để app.py trả lại cho ESP32-CAM biết kết quả
-
-        Nếu lỗi: nếu mất kết nối Firebase, raise exception để app.py
-        bắt được và trả lỗi rõ ràng về ESP32-CAM, không âm thầm bỏ qua.
-        """
         now = datetime.now()
         today_str = now.strftime("%Y-%m-%d")
         time_str = now.strftime("%H:%M:%S")
@@ -117,8 +276,34 @@ class FirebaseService:
             "image_url": image_url
         }
 
-        ref = db.reference(f"attendance/{today_str}/{student_id}")
-        ref.set(record)
-
-        logger.info(f"Đã ghi Firebase: {student_id} | {time_str} | {status}")
+        if self.use_rest_fallback:
+            try:
+                import requests
+                req_url = f"{self.database_url}attendance/{today_str}/{student_id}.json"
+                r = requests.put(req_url, json=record, timeout=5)
+                
+                # Cập nhật thêm trạng thái vào bảng students để WebApp hiển thị lên Dashboard
+                student_url = f"{self.database_url}students/{student_id}.json"
+                requests.patch(student_url, json={"status": status, "time": time_str}, timeout=5)
+                
+                if r.status_code == 200:
+                    logger.info(f"REST Fallback: Đã ghi điểm danh: {student_id} | {time_str} | {status}")
+                else:
+                    logger.error(f"REST Fallback Error {r.status_code}: {r.text}")
+            except Exception as e:
+                logger.error(f"Lỗi khi REST ghi điểm danh: {e}")
+        else:
+            try:
+                ref = db.reference(f"attendance/{today_str}/{student_id}")
+                ref.set(record)
+                
+                # Cập nhật thêm trạng thái vào bảng students
+                student_ref = db.reference(f"students/{student_id}")
+                student_ref.update({"status": status, "time": time_str})
+                
+                logger.info(f"Đã ghi Firebase: {student_id} | {time_str} | {status}")
+            except Exception as e:
+                logger.warning(f"Admin SDK ghi điểm danh thất bại ({e}). Tự động chuyển sang REST...")
+                self.use_rest_fallback = True
+                self.write_attendance(student_id, image_url)
         return record

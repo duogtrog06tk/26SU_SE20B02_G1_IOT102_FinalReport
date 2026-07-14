@@ -3,9 +3,7 @@ package com.mycompany.webappcamerakidcheck.controller;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -19,25 +17,18 @@ import com.google.firebase.database.ValueEventListener;
 import com.mycompany.webappcamerakidcheck.config.FirebaseConfig;
 import com.mycompany.webappcamerakidcheck.model.Student;
 
-@WebServlet(name = "StudentController", urlPatterns = {"/api/students"})
+@WebServlet(name = "StudentController", urlPatterns = { "/api/students" })
 public class StudentController extends HttpServlet {
 
     private static final List<Student> localBackupList = new ArrayList<>();
+    private static volatile boolean useRestFallback = true; // Force REST fallback always
     private final Gson gson = new Gson();
+
+    private static final String FIREBASE_DB_URL = "https://kidcheckdb-default-rtdb.asia-southeast1.firebasedatabase.app/";
 
     @Override
     public void init() throws ServletException {
-        // Tải dữ liệu mặc định ban đầu nếu Firebase trống
-        if (localBackupList.isEmpty()) {
-            localBackupList.add(new Student("HS001", "Nguyễn Gia Bảo", "Mầm 1", "Chưa điểm danh", "https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=150&auto=format&fit=crop", "", "Nguyễn Gia Hưng", "0901234567", "Dị ứng với đậu phộng", "Chưa đến"));
-            localBackupList.add(new Student("HS002", "Lê Mỹ An", "Mầm 1", "Chưa điểm danh", "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop", "", "Lê Anh Tuấn", "0912345678", "Bình thường", "Chưa đến"));
-            localBackupList.add(new Student("HS003", "Trần Minh Khang", "Chồi 2", "Chưa điểm danh", "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop", "", "Phan Thanh Mai", "0987654321", "Cận thị nhẹ", "Chưa đến"));
-            localBackupList.add(new Student("HS004", "Phạm Vy Anh", "Chồi 2", "Chưa điểm danh", "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop", "", "Phạm Hồng Phước", "0976543210", "Dị ứng hải sản", "Chưa đến"));
-            localBackupList.add(new Student("HS005", "Hoàng Đức Nam", "Lá 3", "Chưa điểm danh", "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop", "", "Hoàng Văn Khánh", "0965432109", "Bình thường", "Chưa đến"));
-        }
-        
         try {
-            // Đăng ký đồng bộ dữ liệu thời gian thực từ Firebase sang local list
             DatabaseReference ref = FirebaseConfig.getDatabase().getReference("students");
             ref.addValueEventListener(new ValueEventListener() {
                 @Override
@@ -50,21 +41,105 @@ public class StudentController extends HttpServlet {
                                 localBackupList.add(student);
                             }
                         }
+                        System.out.println("Firebase Admin SDK đồng bộ thành công: " + localBackupList.size() + " bé.");
                     } else {
-                        // Nếu Firebase trống, đẩy dữ liệu mẫu lên Firebase
-                        for (Student s : localBackupList) {
-                            ref.child(s.getId()).setValueAsync(s);
-                        }
+                        localBackupList.clear();
                     }
                 }
 
                 @Override
                 public void onCancelled(DatabaseError databaseError) {
-                    System.err.println("Firebase Student sync cancelled: " + databaseError.getMessage());
+                    // Admin SDK bị Unauthorized → chuyển sang REST vĩnh viễn
+                    System.err.println("Firebase Admin SDK bị từ chối: " + databaseError.getMessage() + " → Chuyển sang REST Fallback.");
+                    useRestFallback = true;
+                    syncStudentsRest();
                 }
             });
         } catch (Exception e) {
             System.err.println("Không thể thiết lập lắng nghe Firebase: " + e.getMessage());
+            useRestFallback = true;
+            syncStudentsRest();
+        }
+    }
+
+    private void syncStudentsRest() {
+        try {
+            String urlString = FIREBASE_DB_URL + "students.json";
+            java.net.URL url = java.net.URI.create(urlString).toURL();
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+
+            int code = conn.getResponseCode();
+            if (code == 200) {
+                java.io.InputStream is = conn.getInputStream();
+                java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(is, java.nio.charset.StandardCharsets.UTF_8));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+
+                String body = sb.toString();
+                if (body != null && !body.equals("null") && !body.isEmpty()) {
+                    java.lang.reflect.Type type = new com.google.gson.reflect.TypeToken<java.util.Map<String, Student>>(){}.getType();
+                    java.util.Map<String, Student> map = gson.fromJson(body, type);
+                    if (map != null) {
+                        localBackupList.clear();
+                        localBackupList.addAll(map.values());
+                        System.out.println("REST đồng bộ danh sách học sinh thành công: " + localBackupList.size() + " bé.");
+                    }
+                } else {
+                    System.out.println("REST: Chưa có học sinh nào trong Firebase.");
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("REST sync failed: " + e.getMessage());
+        }
+    }
+
+    private boolean saveStudentRest(Student student) {
+        try {
+            String urlString = FIREBASE_DB_URL + "students/" + student.getId() + ".json";
+            java.net.URL url = java.net.URI.create(urlString).toURL();
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("PUT");
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+            conn.setDoOutput(true);
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+
+            String json = gson.toJson(student);
+            try (java.io.OutputStream os = conn.getOutputStream()) {
+                byte[] input = json.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+
+            int code = conn.getResponseCode();
+            System.out.println("REST saveStudent " + student.getId() + " → HTTP " + code);
+            return code == 200;
+        } catch (Exception e) {
+            System.err.println("REST save student failed: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean deleteStudentRest(String studentId) {
+        try {
+            String urlString = FIREBASE_DB_URL + "students/" + studentId + ".json";
+            java.net.URL url = java.net.URI.create(urlString).toURL();
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("DELETE");
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+
+            int code = conn.getResponseCode();
+            System.out.println("REST deleteStudent " + studentId + " → HTTP " + code);
+            return code == 200;
+        } catch (Exception e) {
+            System.err.println("REST delete student failed: " + e.getMessage());
+            return false;
         }
     }
 
@@ -73,6 +148,11 @@ public class StudentController extends HttpServlet {
             throws ServletException, IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
+
+        if (localBackupList.isEmpty()) {
+            syncStudentsRest();
+        }
+
         try (PrintWriter out = response.getWriter()) {
             out.print(gson.toJson(localBackupList));
             out.flush();
@@ -87,6 +167,9 @@ public class StudentController extends HttpServlet {
         try {
             Student newStudent = gson.fromJson(request.getReader(), Student.class);
             if (newStudent != null && newStudent.getId() != null) {
+                if (localBackupList.isEmpty()) {
+                    syncStudentsRest();
+                }
                 boolean exists = localBackupList.stream().anyMatch(s -> s.getId().equalsIgnoreCase(newStudent.getId()));
                 if (exists) {
                     response.setStatus(HttpServletResponse.SC_CONFLICT);
@@ -95,18 +178,34 @@ public class StudentController extends HttpServlet {
                     }
                     return;
                 }
-                
-                // Lưu lên Firebase
-                try {
-                    DatabaseReference ref = FirebaseConfig.getDatabase().getReference("students");
-                    ref.child(newStudent.getId()).setValueAsync(newStudent);
-                } catch (Exception e) {
-                    localBackupList.add(newStudent); // Dự phòng nếu ko có kết nối mạng
+
+                // Luôn dùng REST nếu Admin SDK bị Unauthorized
+                boolean saved = false;
+                if (useRestFallback) {
+                    saved = saveStudentRest(newStudent);
+                } else {
+                    try {
+                        DatabaseReference ref = FirebaseConfig.getDatabase().getReference("students");
+                        ref.child(newStudent.getId()).setValueAsync(newStudent).get(); // BLOCKING call to catch Unauthorized
+                        saved = true;
+                    } catch (Exception e) {
+                        System.err.println("Admin SDK error on save: " + e.getMessage());
+                        useRestFallback = true;
+                        saved = saveStudentRest(newStudent);
+                    }
                 }
-                
-                response.setStatus(HttpServletResponse.SC_CREATED);
-                try (PrintWriter out = response.getWriter()) {
-                    out.print(gson.toJson(newStudent));
+
+                if (saved) {
+                    localBackupList.add(newStudent);
+                    response.setStatus(HttpServletResponse.SC_CREATED);
+                    try (PrintWriter out = response.getWriter()) {
+                        out.print(gson.toJson(newStudent));
+                    }
+                } else {
+                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    try (PrintWriter out = response.getWriter()) {
+                        out.print("{\"error\":\"Không thể lưu lên Firebase!\"}");
+                    }
                 }
             }
         } catch (Exception e) {
@@ -122,30 +221,31 @@ public class StudentController extends HttpServlet {
         try {
             Student updateData = gson.fromJson(request.getReader(), Student.class);
             if (updateData != null && updateData.getId() != null) {
-                // Đẩy cập nhật lên Firebase
-                try {
-                    DatabaseReference ref = FirebaseConfig.getDatabase().getReference("students");
-                    ref.child(updateData.getId()).setValueAsync(updateData);
-                } catch (Exception e) {
-                    // Update local backup
-                    for (Student s : localBackupList) {
-                        if (s.getId().equalsIgnoreCase(updateData.getId())) {
-                            s.setName(updateData.getName());
-                            s.setClassName(updateData.getClassName());
-                            s.setPhoto(updateData.getPhoto());
-                            s.setStatus(updateData.getStatus());
-                            s.setTime(updateData.getTime());
-                            s.setParentName(updateData.getParentName());
-                            s.setParentPhone(updateData.getParentPhone());
-                            s.setHealthNote(updateData.getHealthNote());
-                            s.setPickupStatus(updateData.getPickupStatus());
-                        }
+                boolean updated = false;
+                if (useRestFallback) {
+                    updated = saveStudentRest(updateData);
+                } else {
+                    try {
+                        DatabaseReference ref = FirebaseConfig.getDatabase().getReference("students");
+                        ref.child(updateData.getId()).setValueAsync(updateData).get();
+                        updated = true;
+                    } catch (Exception e) {
+                        System.err.println("Admin SDK error on update: " + e.getMessage());
+                        useRestFallback = true;
+                        updated = saveStudentRest(updateData);
                     }
                 }
-                
-                response.setStatus(HttpServletResponse.SC_OK);
-                try (PrintWriter out = response.getWriter()) {
-                    out.print(gson.toJson(updateData));
+
+                if (updated) {
+                    localBackupList.removeIf(s -> s.getId().equalsIgnoreCase(updateData.getId()));
+                    localBackupList.add(updateData);
+
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    try (PrintWriter out = response.getWriter()) {
+                        out.print(gson.toJson(updateData));
+                    }
+                } else {
+                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 }
             }
         } catch (Exception e) {
@@ -160,15 +260,28 @@ public class StudentController extends HttpServlet {
         response.setCharacterEncoding("UTF-8");
         String studentId = request.getParameter("id");
         if (studentId != null) {
-            try {
-                DatabaseReference ref = FirebaseConfig.getDatabase().getReference("students");
-                ref.child(studentId).removeValueAsync();
-            } catch (Exception e) {
-                localBackupList.removeIf(s -> s.getId().equalsIgnoreCase(studentId));
+            boolean deleted = false;
+            if (useRestFallback) {
+                deleted = deleteStudentRest(studentId);
+            } else {
+                try {
+                    DatabaseReference ref = FirebaseConfig.getDatabase().getReference("students");
+                    ref.child(studentId).removeValueAsync().get();
+                    deleted = true;
+                } catch (Exception e) {
+                    System.err.println("Admin SDK error on delete: " + e.getMessage());
+                    useRestFallback = true;
+                    deleted = deleteStudentRest(studentId);
+                }
             }
-            
-            try (PrintWriter out = response.getWriter()) {
-                out.print("{\"success\":true}");
+
+            if (deleted) {
+                localBackupList.removeIf(s -> s.getId().equalsIgnoreCase(studentId));
+                try (PrintWriter out = response.getWriter()) {
+                    out.print("{\"success\":true}");
+                }
+            } else {
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             }
             return;
         }

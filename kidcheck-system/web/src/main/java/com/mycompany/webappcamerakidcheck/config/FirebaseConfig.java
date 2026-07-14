@@ -26,7 +26,7 @@ public class FirebaseConfig {
 
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                    .setDatabaseUrl("https://kidcheck-attendance-c5504-default-rtdb.asia-southeast1.firebasedatabase.app") // Đã cập nhật đúng database của bạn
+                    .setDatabaseUrl("https://kidcheckdb-default-rtdb.asia-southeast1.firebasedatabase.app") // Đã cập nhật database kidcheckdb mới
                     .build();
 
             if (FirebaseApp.getApps().isEmpty()) {

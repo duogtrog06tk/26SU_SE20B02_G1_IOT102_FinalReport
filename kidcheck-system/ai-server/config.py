@@ -25,4 +25,4 @@ KNOWN_FACES_DIR = os.path.join(os.path.dirname(__file__), "known_faces")
 FIREBASE_CREDENTIALS_PATH = os.path.join(os.path.dirname(__file__), "serviceAccountKey.json")
 
 # URL Firebase Realtime Database — lấy trong Firebase Console > Realtime Database
-FIREBASE_DATABASE_URL = "https://kidcheck-attendance-c5504-default-rtdb.asia-southeast1.firebasedatabase.app/"
+FIREBASE_DATABASE_URL = "https://kidcheckdb-default-rtdb.asia-southeast1.firebasedatabase.app/"

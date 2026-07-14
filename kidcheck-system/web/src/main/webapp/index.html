@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+               <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -693,6 +693,17 @@
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span id="status-ai-server" class="status-badge" style="background:#FFEBEB; color:#FF3B30; padding:4px 10px; border-radius:20px; font-size:0.8rem; font-weight:800; border:1px solid rgba(255,59,48,0.15);">Offline</span>
                                 <button class="btn btn-secondary" onclick="checkAiServerConnection()" style="padding: 4px 8px; font-size: 0.75rem; min-height: unset; height: auto;" title="Kiểm tra kết nối"><i class="fa-solid fa-arrows-rotate"></i></button>
+                            </div>
+                        </div>
+                        <!-- ESP32-CAM WiFi STA Status -->
+                        <div style="flex:1; min-width: 220px; background: rgba(0,0,0,0.02); padding: 12px 16px; border-radius: 12px; border: 1.5px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="display:block; color:var(--text); font-size:0.9rem;">WiFi STA (ESP32-CAM)</strong>
+                                <span id="esp-wifi-sta-ssid" style="font-size:0.75rem; color:var(--text-light);">SSID: Đang tải...</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span id="status-esp-wifi-sta" class="status-badge" style="background:#FFEBEB; color:#FF3B30; padding:4px 10px; border-radius:20px; font-size:0.8rem; font-weight:800; border:1px solid rgba(255,59,48,0.15);">Offline</span>
+                                <span id="esp-wifi-sta-rssi" style="font-size:0.75rem; font-weight:800; color:var(--text-light);">-- dBm</span>
                             </div>
                         </div>
                     </div>
@@ -1416,43 +1427,52 @@
         let currentUser = null; // role: admin, teacher, parent, guest
         let currentLiveClass = "Mầm 1";
         
-        // MOCK DATABASE CHO PHÂN QUYỀN TRUY CẬP (Đồng bộ qua localStorage)
-        // 1. Phân quyền giáo viên gán lớp
-        let teacherClassAssignments = {
-            "Cô giáo phụ trách lớp": ["Mầm 1", "Chồi 2"]
-        };
-        // 2. Liên kết phụ huynh con
-        let parentStudentLinks = {
-            "0901234567": "HS001", // Nguyễn Gia Bảo
-            "0912345678": "HS002"  // Lê Mỹ An
-        };
-        let parentNames = {
-            "0901234567": "Nguyễn Văn A",
-            "0912345678": "Lê Văn B"
-        };
-
-        // Khởi tạo localStorage
-        if (localStorage.getItem("teacherClassAssignments")) {
-            teacherClassAssignments = JSON.parse(localStorage.getItem("teacherClassAssignments"));
-        } else {
-            localStorage.setItem("teacherClassAssignments", JSON.stringify(teacherClassAssignments));
-        }
-        if (localStorage.getItem("parentStudentLinks")) {
-            parentStudentLinks = JSON.parse(localStorage.getItem("parentStudentLinks"));
-        } else {
-            localStorage.setItem("parentStudentLinks", JSON.stringify(parentStudentLinks));
-        }
-        if (localStorage.getItem("parentNames")) {
-            parentNames = JSON.parse(localStorage.getItem("parentNames"));
-        } else {
-            localStorage.setItem("parentNames", JSON.stringify(parentNames));
-        }
-        // 3. Tin nhắn gửi cho phụ huynh (message inbox)
+        // CẤU HÌNH PHÂN QUYỀN TRUY CẬP & LIÊN KẾT PHỤ HUYNH (Đồng bộ qua Firebase & localStorage dự phòng)
+        let teacherClassAssignments = {};
+        let parentStudentLinks = {};
+        let parentNames = {};
         let parentMessages = [];
-        if (localStorage.getItem("parentMessages")) {
-            parentMessages = JSON.parse(localStorage.getItem("parentMessages"));
-        } else {
+
+        async function fetchRoles() {
+            try {
+                const res = await fetch('api/roles');
+                if (res.ok) {
+                    const data = await res.json();
+                    teacherClassAssignments = data.teacherClassAssignments || {};
+                    parentStudentLinks = data.parentStudentLinks || {};
+                    parentNames = data.parentNames || {};
+                    parentMessages = data.parentMessages || [];
+                }
+            } catch (err) {
+                console.error("Lỗi tải phân quyền từ Firebase, dùng dữ liệu local làm fallback:", err);
+                teacherClassAssignments = JSON.parse(localStorage.getItem("teacherClassAssignments") || '{}');
+                parentStudentLinks = JSON.parse(localStorage.getItem("parentStudentLinks") || '{}');
+                parentNames = JSON.parse(localStorage.getItem("parentNames") || '{}');
+                parentMessages = JSON.parse(localStorage.getItem("parentMessages") || '[]');
+            }
+        }
+
+        async function saveRoles() {
+            // Cập nhật localStorage làm dự phòng offline
+            localStorage.setItem("teacherClassAssignments", JSON.stringify(teacherClassAssignments));
+            localStorage.setItem("parentStudentLinks", JSON.stringify(parentStudentLinks));
+            localStorage.setItem("parentNames", JSON.stringify(parentNames));
             localStorage.setItem("parentMessages", JSON.stringify(parentMessages));
+
+            try {
+                await fetch('api/roles', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        teacherClassAssignments,
+                        parentStudentLinks,
+                        parentNames,
+                        parentMessages
+                    })
+                });
+            } catch (err) {
+                console.error("Lỗi đồng bộ phân quyền lên Firebase:", err);
+            }
         }
         if (localStorage.getItem("settings")) {
             settings = { ...settings, ...JSON.parse(localStorage.getItem("settings")) };
@@ -1490,16 +1510,49 @@
         // FIX #6: Đã xóa hàm fetchSettings() vì Settings backend Java không đồng bộ được
         // các trường UI (theme, gridLayout, lang). Các settings này chỉ lưu qua localStorage.
 
+        function startRealtimePolling() {
+            setInterval(async () => {
+                const activePage = document.querySelector('.app-page[style*="display: block"]');
+                if (!activePage) return;
+                const pageId = activePage.id;
+                
+                // Dừng kéo stream nếu người dùng rời khỏi tab Điểm danh Live
+                if (pageId !== 'page-live-attendance') {
+                    updateCameraStream(false);
+                }
+                
+                if (pageId === 'page-dashboard' || pageId === 'page-live-attendance' || pageId === 'page-attendance-report') {
+                    await fetchStudents();
+                    await fetchLogs();
+                    
+                    // Cập nhật cấu hình phần cứng từ Firebase
+                    await fetchFirebaseSystemConfigs();
+                    
+                    if (pageId === 'page-dashboard') {
+                        loadDashboard();
+                        checkAiServerConnection();
+                        checkEspCamConnection();
+                    } else if (pageId === 'page-live-attendance') {
+                        loadLiveAttendanceGrid();
+                        checkEspCamConnection(); // Chạy kiểm tra để kích hoạt luồng camera
+                    } else if (pageId === 'page-attendance-report') {
+                        loadAttendanceReportTable();
+                    }
+                }
+            }, 3000); // Polling mỗi 3 giây
+        }
+
         // Tải trang công khai Landing View đầu tiên
         window.addEventListener('load', async () => {
             await fetchStudents();
             await fetchClasses();
             await fetchLogs();
-            // FIX #6: Bỏ fetchSettings() vì không đồng bộ được với schema backend
+            await fetchRoles(); // Tải cấu hình phân quyền từ Firebase
             
             showLandingView();
             initLandingSlider();
             updateLandingStats();
+            startRealtimePolling(); // Chạy tự động cập nhật thời gian thực
         });
 
         // =====================================================
@@ -1850,6 +1903,11 @@
 
         // Chuyển trang SPA
         function switchPage(pageId) {
+            // Tắt stream ngay lập tức khi chuyển sang trang khác
+            if (pageId !== 'live-attendance') {
+                updateCameraStream(false);
+            }
+
             document.querySelectorAll('.app-page').forEach(page => page.style.display = 'none');
             document.querySelectorAll('.nav-menu .nav-item').forEach(i => i.classList.remove('active'));
             
@@ -1860,7 +1918,10 @@
             if (activeNavItem) activeNavItem.classList.add('active');
 
             if (pageId === 'dashboard') loadDashboard();
-            if (pageId === 'live-attendance') loadLiveAttendanceView();
+            if (pageId === 'live-attendance') {
+                loadLiveAttendanceView();
+                checkEspCamConnection(); // Bật stream ngay lập tức khi vào trang Điểm danh Live
+            }
             if (pageId === 'student-management') loadStudentManagementView();
             if (pageId === 'attendance-report') loadReportView();
             if (pageId === 'statistics') loadStatisticsView();
@@ -2284,30 +2345,42 @@
             const view = document.getElementById('simulated-capture-view');
             const instruct = document.getElementById('cam-instruct');
             
+            // Lấy mã học sinh chính thức từ input
+            const studentIdForCam = document.getElementById('student-code').value.trim();
+            const studentName = document.getElementById('student-name').value.trim() || studentIdForCam;
+            if (!studentIdForCam) {
+                alert(currentLang === 'vi' ? "Vui lòng nhập Mã học sinh trước!" : "Please enter Student ID first!");
+                return;
+            }
+
             // Kiểm tra xem ESP32-CAM có Online (LAN) không
             let isEspOnline = false;
             const espCamStatusText = document.getElementById('status-esp-cam') ? document.getElementById('status-esp-cam').innerText : 'Offline';
-            if (espCamStatusText.includes('Online (LAN)')) {
+            if (espCamStatusText.includes('Online (LAN)') || espCamStatusText.includes('Online (Cloud)')) {
                 isEspOnline = true;
             }
 
             if (isEspOnline) {
-                // Triển khai chụp ảnh thực tế qua ESP32-CAM
+                // Triển khai chụp ảnh thực tế qua AI Server Gateway -> ESP32-CAM
                 instruct.innerText = currentLang === 'vi' 
-                    ? "Đang kích hoạt ESP32-CAM chụp 3 tấm ảnh..." 
-                    : "Activating ESP32-CAM to capture 3 photos...";
+                    ? "Đang kích hoạt ESP32-CAM chụp 3 tấm ảnh qua AI Server..." 
+                    : "Activating ESP32-CAM to capture 3 photos via AI Server...";
                 guide.style.display = "none";
                 view.style.display = "none";
                 countEl.style.display = "none";
 
                 try {
-                    const studentIdForCam = activeCaptureStudentId === "NEW" ? "TEMP_HS" : activeCaptureStudentId;
-                    
                     const controller = new AbortController();
-                    // Để timeout 15 giây vì chụp 3 tấm mất khoảng 10 giây
-                    const timeoutId = setTimeout(() => controller.abort(), 15000);
+                    // Để timeout 25 giây vì ESP32-CAM chụp 3 ảnh cách nhau 3 giây (tổng cộng ~10 giây) và AI xử lý
+                    const timeoutId = setTimeout(() => controller.abort(), 25000);
                     
-                    const res = await fetch(`http://${actualEspCamIp}/capture-reg?student_id=${studentIdForCam}`, { 
+                    const res = await fetch(`${actualAiServerUrl}/control-device`, { 
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            student_id: studentIdForCam,
+                            name: studentName
+                        }),
                         signal: controller.signal
                     });
                     clearTimeout(timeoutId);
@@ -2316,23 +2389,22 @@
                         const data = await res.json();
                         if (data.success) {
                             instruct.innerText = currentLang === 'vi'
-                                ? `Thành công! Đã nạp ${data.photos_sent}/3 ảnh của học sinh ${data.student_id} lên AI Server.`
-                                : `Success! Uploaded ${data.photos_sent}/3 photos of student ${data.student_id} to AI Server.`;
+                                ? `Thành công! Đã nạp 3 ảnh của học sinh ${data.student_id} lên AI Server.`
+                                : `Success! Uploaded 3 photos of student ${data.student_id} to AI Server.`;
                             
-                            // Load lại known faces trên AI Server
-                            fetch(`${actualAiServerUrl}/reload-faces`, { method: 'POST' }).catch(err => console.log("Reload faces error:", err));
-
-                            view.src = "https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=150&auto=format&fit=crop"; // demo hiển thị
+                            // Hiển thị ảnh chụp thực tế lấy từ AI Server
+                            view.src = `${actualAiServerUrl}/faces/${studentIdForCam}?t=${Date.now()}`;
                             view.style.display = "block";
 
-                            if (activeCaptureStudentId === "NEW") {
-                                tempCapturedPhotoUrl = view.src;
-                                const indicator = document.getElementById('reg-photo-indicator');
-                                if (indicator) indicator.style.display = 'block';
-                            } else {
+                            tempCapturedPhotoUrl = `${actualAiServerUrl}/faces/${studentIdForCam}`;
+                            const indicator = document.getElementById('reg-photo-indicator');
+                            if (indicator) indicator.style.display = 'block';
+
+                            // Nếu đang trong chế độ sửa học sinh hiện tại, cập nhật trực tiếp DB
+                            if (activeCaptureStudentId !== "NEW") {
                                 const stud = students.find(s => s.id === activeCaptureStudentId);
                                 if (stud) {
-                                    stud.photo = view.src;
+                                    stud.photo = tempCapturedPhotoUrl;
                                     await fetch('api/students', {
                                         method: 'PUT',
                                         headers: { 'Content-Type': 'application/json' },
@@ -2343,18 +2415,25 @@
                                 }
                             }
                         } else {
-                            throw new Error("ESP32-CAM báo lỗi chụp ảnh");
+                            alert(currentLang === 'vi'
+                                ? (data.message || "Không phát hiện khuôn mặt hợp lệ trong các ảnh đã chụp!")
+                                : (data.message || "No valid face detected in captured photos!"));
+                            instruct.innerText = currentLang === 'vi'
+                                ? "Lỗi: Không lấy được dữ liệu khuôn mặt. Vui lòng chụp lại."
+                                : "Error: No face data obtained. Please capture again.";
+                            guide.style.display = "block";
                         }
                     } else {
-                        throw new Error("HTTP Error " + res.status);
+                        const errData = await res.json().catch(() => ({}));
+                        throw new Error(errData.message || ("HTTP Error " + res.status));
                     }
                 } catch (err) {
-                    console.error("Lỗi chụp ảnh thực tế:", err);
+                    console.error("Lỗi chụp ảnh qua AI Server:", err);
+                    alert((currentLang === 'vi' ? "Lỗi kết nối hoặc kiểm duyệt khuôn mặt: " : "Connection or face verification error: ") + err.message);
                     instruct.innerText = currentLang === 'vi'
-                        ? "Lỗi kết nối ESP32-CAM thực tế! Đang tự động chuyển sang chế độ giả lập..."
-                        : "Real ESP32-CAM connection failed! Falling back to simulator...";
-                    // Gọi lại giả lập sau 2 giây
-                    setTimeout(() => runCaptureSimulator(), 2000);
+                        ? "Lỗi chụp ảnh. Vui lòng thử lại hoặc chọn tải ảnh từ máy tính."
+                        : "Capture failed. Please try again or select photo upload.";
+                    guide.style.display = "block";
                 }
             } else {
                 // Chạy giả lập trực tiếp nếu ESP32 offline
@@ -2608,19 +2687,54 @@
             const isEdit = editId !== "";
             const method = isEdit ? 'PUT' : 'POST';
 
-            // Xác định ảnh
+            // Xác định ảnh và Kiểm duyệt khuôn mặt AI
             let photoUrl = "https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=150&auto=format&fit=crop";
             if (isEdit) {
                 photoUrl = students.find(s => s.id === editId)?.photo || photoUrl;
             }
 
             const photoMode = document.getElementById('student-photo-mode').value;
-            if (photoMode === 'esp32' && tempCapturedPhotoUrl !== "") {
-                photoUrl = tempCapturedPhotoUrl;
+            if (photoMode === 'esp32') {
+                if (!isEdit && tempCapturedPhotoUrl === "") {
+                    alert(currentLang === 'vi' 
+                        ? "Vui lòng chụp ảnh của bé từ ESP32-CAM và đảm bảo hệ thống đã nhận diện khuôn mặt thành công trước khi lưu!" 
+                        : "Please capture the child's photo from ESP32-CAM and ensure the system successfully recognizes the face before saving!");
+                    return;
+                }
+                if (tempCapturedPhotoUrl !== "") {
+                    photoUrl = tempCapturedPhotoUrl;
+                }
             } else if (photoMode === 'upload') {
-                const fileBase64 = await getSelectedPhotoBase64();
-                if (fileBase64) {
-                    photoUrl = fileBase64;
+                const fileInput = document.getElementById('student-photo-file');
+                const file = fileInput.files[0];
+                if (file) {
+                    // 1. Kiểm tra ảnh có khuôn mặt bằng cách tải ảnh lên AI Server trước
+                    const formData = new FormData();
+                    formData.append("file", file);
+                    formData.append("student_id", id);
+                    
+                    try {
+                        const aiRes = await fetch(`${actualAiServerUrl}/register`, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        if (!aiRes.ok) {
+                            const errData = await aiRes.json();
+                            alert((currentLang === 'vi' ? "Lỗi duyệt ảnh: " : "AI Photo Error: ") + (errData.message || "Không phát hiện khuôn mặt hợp lệ trong ảnh! Vui lòng chọn ảnh khác."));
+                            return; // Dừng lại, không cho lưu thông tin vào database!
+                        }
+                        
+                        // Nếu AI nhận diện khuôn mặt thành công, lưu đường dẫn ảnh tĩnh lấy trực tiếp từ AI Server
+                        photoUrl = `${actualAiServerUrl}/faces/${id}?t=${Date.now()}`;
+                    } catch (aiErr) {
+                        console.error("Lỗi kết nối AI Server:", aiErr);
+                        alert(currentLang === 'vi' ? "Lỗi kết nối tới AI Server để kiểm duyệt khuôn mặt!" : "Cannot connect to AI Server to verify face!");
+                        return; // Ngăn chặn việc ghi database khi không thẩm định được ảnh
+                    }
+                } else if (!isEdit) {
+                    alert(currentLang === 'vi' ? "Vui lòng chọn hoặc chụp ảnh nhận diện cho bé!" : "Please choose or capture an identification photo!");
+                    return;
                 }
             }
 
@@ -2644,8 +2758,12 @@
                     body: JSON.stringify(studentData)
                 });
 
-                if (res.status === 409) {
-                    alert(currentLang === 'vi' ? "Mã số bé (Mã học sinh) đã tồn tại!" : "Student ID already exists!");
+                if (!res.ok) {
+                    if (res.status === 409) {
+                        alert(currentLang === 'vi' ? "Mã số bé (Mã học sinh) đã tồn tại!" : "Student ID already exists!");
+                    } else {
+                        alert(currentLang === 'vi' ? "Lỗi khi lưu thông tin học sinh lên Java Backend! Vui lòng kiểm tra console log Java." : "Error saving student profile to Java Backend! Please check Java console log.");
+                    }
                     return;
                 }
 
@@ -2653,6 +2771,16 @@
                 closeStudentModal();
                 await fetchStudents();
                 filterStudentsTable();
+
+                // ĐỒNG BỘ KHUÔN MẶT AI: Chờ Java commit lên Firebase xong mới sync
+                // (Admin SDK setValueAsync là async — cần delay ngắn tránh race condition)
+                try {
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    await fetch(`${actualAiServerUrl}/reload-faces`, { method: 'POST' });
+                    checkAiServerConnection();
+                } catch (e) {
+                    console.error("Lỗi đồng bộ khuôn mặt AI Server:", e);
+                }
             } catch (err) {
                 console.error("Lỗi khi lưu thông tin học sinh:", err);
             }
@@ -2699,6 +2827,14 @@
                     alert(currentLang === 'vi' ? "Xóa hồ sơ thành công!" : "Profile deleted successfully!");
                     await fetchStudents();
                     filterStudentsTable();
+
+                    // ĐỒNG BỘ KHUÔN MẶT AI: Gọi AI Server xóa thư mục ảnh cục bộ và cập nhật lại bộ nhớ nhận diện
+                    try {
+                        await fetch(`${actualAiServerUrl}/reload-faces`, { method: 'POST' });
+                        checkAiServerConnection();
+                    } catch (e) {
+                        console.error("Lỗi đồng bộ khuôn mặt AI Server sau khi xóa:", e);
+                    }
                 }
             } catch (err) {
                 console.error("Lỗi khi xóa học sinh:", err);
@@ -2856,7 +2992,7 @@
             });
         }
 
-        function assignTeacherClass(teacherName) {
+        async function assignTeacherClass(teacherName) {
             const safeName = teacherName.replace(/\s+/g, '-');
             const selectId = `all-classes-select-${safeName}`;
             const selectedClass = document.getElementById(selectId).value;
@@ -2867,7 +3003,7 @@
             }
             if (!teacherClassAssignments[teacherName].includes(selectedClass)) {
                 teacherClassAssignments[teacherName].push(selectedClass);
-                localStorage.setItem("teacherClassAssignments", JSON.stringify(teacherClassAssignments));
+                await saveRoles();
                 alert(currentLang === 'vi' ? `Đã thêm quyền quản lý lớp ${selectedClass} cho giáo viên ${teacherName}!` : `Added class ${selectedClass} to teacher ${teacherName}!`);
                 loadTeacherRolesTable();
             } else {
@@ -2875,7 +3011,7 @@
             }
         }
 
-        function unassignTeacherClass(teacherName) {
+        async function unassignTeacherClass(teacherName) {
             const safeName = teacherName.replace(/\s+/g, '-');
             const selectId = `assigned-select-${safeName}`;
             const selectedClass = document.getElementById(selectId).value;
@@ -2889,7 +3025,7 @@
             const idx = teacherClassAssignments[teacherName].indexOf(selectedClass);
             if (idx > -1) {
                 teacherClassAssignments[teacherName].splice(idx, 1);
-                localStorage.setItem("teacherClassAssignments", JSON.stringify(teacherClassAssignments));
+                await saveRoles();
                 alert(currentLang === 'vi' ? `Đã xóa quyền quản lý lớp ${selectedClass} của giáo viên ${teacherName}!` : `Removed class ${selectedClass} from teacher ${teacherName}!`);
                 loadTeacherRolesTable();
             }
@@ -2937,7 +3073,7 @@
             });
         }
 
-        function handleParentLinkSubmit(e) {
+        async function handleParentLinkSubmit(e) {
             e.preventDefault();
             const name = document.getElementById('link-parent-name').value.trim();
             const phone = document.getElementById('link-parent-phone').value.trim();
@@ -2946,26 +3082,24 @@
             if (!phone || !name) return;
             parentStudentLinks[phone] = kidId;
             parentNames[phone] = name;
-            localStorage.setItem("parentStudentLinks", JSON.stringify(parentStudentLinks));
-            localStorage.setItem("parentNames", JSON.stringify(parentNames));
+            await saveRoles();
 
             document.getElementById('parent-link-form').reset();
             loadParentRolesTable();
         }
 
-        function removeParentLink(phone) {
+        async function removeParentLink(phone) {
             if (confirm("Hủy liên kết tài khoản phụ huynh này?")) {
                 delete parentStudentLinks[phone];
                 delete parentNames[phone];
-                localStorage.setItem("parentStudentLinks", JSON.stringify(parentStudentLinks));
-                localStorage.setItem("parentNames", JSON.stringify(parentNames));
+                await saveRoles();
                 loadParentRolesTable();
             }
         }
         // =====================================================
         // PARENT MESSAGE SYSTEM (Gửi tin nhắn đến phụ huynh)
         // =====================================================
-        function sendParentMessage(student, type, timeStr, isLate) {
+        async function sendParentMessage(student, type, timeStr, isLate) {
             // Tìm SĐT phụ huynh liên kết với bé này
             const parentPhone = Object.keys(parentStudentLinks).find(phone => parentStudentLinks[phone] === student.id);
             if (!parentPhone) return; // Bé chưa được liên kết phụ huynh
@@ -3005,7 +3139,7 @@
             };
 
             parentMessages.push(msg);
-            localStorage.setItem("parentMessages", JSON.stringify(parentMessages));
+            await saveRoles();
             console.log(`[Tin nhắn Phụ Huynh] → ${parentPhone}: ${title}`);
         }
 
@@ -3015,11 +3149,11 @@
                 .sort((a, b) => (b.time || '').localeCompare(a.time || ''));
         }
 
-        function markParentMessageRead(msgId) {
+        async function markParentMessageRead(msgId) {
             const msg = parentMessages.find(m => m.id === msgId);
             if (msg) {
                 msg.read = true;
-                localStorage.setItem("parentMessages", JSON.stringify(parentMessages));
+                await saveRoles();
                 loadParentMessages();
             }
         }
@@ -3224,7 +3358,7 @@
         async function fetchFirebaseSystemConfigs() {
             try {
                 // 1. Lấy IP của AI Server
-                const aiRes = await fetch('https://kidcheck-attendance-c5504-default-rtdb.asia-southeast1.firebasedatabase.app/System/AI_Server_IP.json');
+                const aiRes = await fetch('https://kidcheckdb-default-rtdb.asia-southeast1.firebasedatabase.app/System/AI_Server_IP.json');
                 if (aiRes.ok) {
                     const aiData = await aiRes.json();
                     if (aiData && aiData.url) {
@@ -3245,7 +3379,7 @@
 
             try {
                 // 2. Lấy thông tin trạng thái & IP của ESP32-CAM
-                const espRes = await fetch('https://kidcheck-attendance-c5504-default-rtdb.asia-southeast1.firebasedatabase.app/System/ESP32_CAM_Status.json');
+                const espRes = await fetch('https://kidcheckdb-default-rtdb.asia-southeast1.firebasedatabase.app/System/ESP32_CAM_Status.json');
                 if (espRes.ok) {
                     const espData = await espRes.json();
                     if (espData && espData.ip) {
@@ -3257,6 +3391,13 @@
                         const label2 = document.getElementById('live-cam-ip-label');
                         if (label2) label2.innerText = "IP ESP32-CAM: " + actualEspCamIp;
                         
+                        // Cập nhật SSID và RSSI lên card WiFi STA
+                        const ssidLabel = document.getElementById('esp-wifi-sta-ssid');
+                        if (ssidLabel) ssidLabel.innerText = "SSID: " + (espData.ssid || 'N/A');
+                        
+                        const rssiLabel = document.getElementById('esp-wifi-sta-rssi');
+                        if (rssiLabel) rssiLabel.innerText = (espData.rssi || '--') + " dBm";
+                        
                         window.lastEspCamStatusData = espData;
                     }
                 }
@@ -3266,7 +3407,7 @@
 
             try {
                 // 3. Lấy mật khẩu WiFi AP của ESP32 từ Firebase để điền vào input
-                const wifiRes = await fetch('https://kidcheck-attendance-c5504-default-rtdb.asia-southeast1.firebasedatabase.app/System/Device_Config.json');
+                const wifiRes = await fetch('https://kidcheckdb-default-rtdb.asia-southeast1.firebasedatabase.app/System/Device_Config.json');
                 if (wifiRes.ok) {
                     const wifiData = await wifiRes.json();
                     if (wifiData && wifiData.ap_password) {
@@ -3307,10 +3448,17 @@
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 1200);
                 
-                // Gửi request không CORS (no-cors) tới IP của ESP32 để xem thiết bị có online trong LAN không
-                await fetch(`http://${actualEspCamIp}/`, { signal: controller.signal, mode: 'no-cors' });
+                // Gửi request không CORS (no-cors) tới /led của ESP32 để xem thiết bị có online trong LAN không (tránh bị redirect ở root)
+                await fetch(`http://${actualEspCamIp}/led`, { signal: controller.signal, mode: 'no-cors' });
                 clearTimeout(timeoutId);
                 setOnlineStatus(el, 'Online (LAN)');
+                
+                // Cập nhật card WiFi STA
+                const wifiStaEl = document.getElementById('status-esp-wifi-sta');
+                if (wifiStaEl) setOnlineStatus(wifiStaEl, 'Connected');
+                
+                // Bật camera stream
+                updateCameraStream(true);
             } catch (err) {
                 // Nếu LAN offline, kiểm tra heartbeat lưu trên Firebase Cloud
                 if (window.lastEspCamStatusData && window.lastEspCamStatusData.status === 'ONLINE' && window.lastEspCamStatusData.last_seen) {
@@ -3319,11 +3467,65 @@
                     const diffSeconds = (new Date() - lastSeenDate) / 1000;
                     if (diffSeconds < 60) {
                         setOnlineStatus(el, 'Online (Cloud)');
+                        const wifiStaEl = document.getElementById('status-esp-wifi-sta');
+                        if (wifiStaEl) setOnlineStatus(wifiStaEl, 'Connected');
+                        
+                        updateCameraStream(false); // Không stream trực tiếp qua IP LAN từ mạng ngoài
                         return;
                     }
                 }
                 setOfflineStatus(el, 'Offline');
+                const wifiStaEl = document.getElementById('status-esp-wifi-sta');
+                if (wifiStaEl) setOfflineStatus(wifiStaEl, 'Offline');
+                
+                updateCameraStream(false);
             }
+        }
+
+        let currentStreamIp = null;
+        let streamTimer = null;
+        function updateCameraStream(isOnline) {
+            const container = document.getElementById('video-feed');
+            if (!container) return;
+            
+            if (isOnline && actualEspCamIp) {
+                // Chỉ thiết lập lại nếu đổi IP hoặc chưa khởi tạo stream
+                if (currentStreamIp !== actualEspCamIp) {
+                    currentStreamIp = actualEspCamIp;
+                    
+                    // Thay thế bằng thẻ img để hiển thị stream tự động
+                    container.innerHTML = `
+                        <img id="live-stream-img" src="http://${actualEspCamIp}/stream" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;" onerror="handleStreamError(this)"/>
+                        <span id="live-cam-ip-label" style="position: absolute; bottom: 15px; left: 15px; font-size: 0.85rem; color: #CBD5E1; background: rgba(0,0,0,0.6); padding: 4px 12px; border-radius: 30px;">IP ESP32-CAM: ${actualEspCamIp}</span>
+                    `;
+                    
+                    // Tạo vòng lặp kéo ảnh (Simulate live camera)
+                    if (streamTimer) clearInterval(streamTimer);
+                    streamTimer = setInterval(() => {
+                        const img = document.getElementById('live-stream-img');
+                        if (img && currentStreamIp) {
+                            img.src = `http://${currentStreamIp}/stream?t=${Date.now()}`;
+                        }
+                    }, 200); // 5 FPS
+                }
+            } else {
+                currentStreamIp = null;
+                if (streamTimer) {
+                    clearInterval(streamTimer);
+                    streamTimer = null;
+                }
+                // Khôi phục giao diện chờ ban đầu
+                container.innerHTML = `
+                    <i class="fa-solid fa-camera-retro" style="font-size: 5rem; color: var(--primary-light);"></i>
+                    <p style="font-weight: 600; font-size: 1.1rem; color: #FFF;" data-i18n="live-mjpeg">Kết nối MJPEG Stream Active</p>
+                    <span id="live-cam-ip-label" style="font-size: 0.85rem; color: #CBD5E1; background: rgba(0,0,0,0.4); padding: 4px 12px; border-radius: 30px;">IP ESP32-CAM: ${actualEspCamIp || '192.168.1.100'}</span>
+                `;
+            }
+        }
+
+        function handleStreamError(img) {
+            console.warn("Lỗi tải luồng video từ ESP32-CAM, ngắt stream.");
+            updateCameraStream(false);
         }
 
         async function changeEspWifiPassword() {
@@ -3337,7 +3539,7 @@
             
             try {
                 // Ghi mật khẩu AP mới lên Firebase
-                const res = await fetch(`https://kidcheck-attendance-c5504-default-rtdb.asia-southeast1.firebasedatabase.app/System/Device_Config.json`, {
+                const res = await fetch(`https://kidcheckdb-default-rtdb.asia-southeast1.firebasedatabase.app/System/Device_Config.json`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ap_password: newPass })
@@ -3496,31 +3698,22 @@
                 targetLogs = logs.filter(l => assigned.includes(l.className));
             }
 
-            if (targetLogs.length === 0) {
-                // Tạo dữ liệu log ảo nếu trống
-                filtered = [
-                    { date: todayStr, time: "07:32", id: "HS001", name: "Nguyễn Gia Bảo", className: "Mầm 1", status: "Bé đến lớp" },
-                    { date: todayStr, time: "08:20", id: "HS003", name: "Trần Minh Khang", className: "Chồi 2", status: "Bé đến muộn" },
-                    { date: todayStr, time: "16:15", id: "HS001", name: "Nguyễn Gia Bảo", className: "Mầm 1", status: "Đã đón về" }
-                ];
-            } else {
-                filtered = targetLogs.map(l => {
-                    const stud = students.find(s => s.id === l.id);
-                    const hasDate = l.time && l.time.includes(' ');
-                    const datePart = hasDate ? l.time.split(' ')[0] : todayStr;
-                    const timePart = hasDate ? l.time.split(' ')[1] : (l.time || '--:--');
-                    return {
-                        date: datePart,
-                        time: timePart,
-                        id: l.id,
-                        name: l.name,
-                        className: l.className,
-                        status: l.status,
-                        parentName: stud ? stud.parentName : (l.parentName || 'N/A'),
-                        parentPhone: stud ? stud.parentPhone : (l.parentPhone || 'N/A')
-                    };
-                });
-            }
+            filtered = targetLogs.map(l => {
+                const stud = students.find(s => s.id === l.id);
+                const hasDate = l.time && l.time.includes(' ');
+                const datePart = hasDate ? l.time.split(' ')[0] : todayStr;
+                const timePart = hasDate ? l.time.split(' ')[1] : (l.time || '--:--');
+                return {
+                    date: datePart,
+                    time: timePart,
+                    id: l.id,
+                    name: l.name,
+                    className: l.className || (stud ? stud.className : 'Mầm 1'),
+                    status: l.status,
+                    parentName: stud ? stud.parentName : (l.parentName || 'N/A'),
+                    parentPhone: stud ? stud.parentPhone : (l.parentPhone || 'N/A')
+                };
+            });
 
             // Lọc theo lớp học
             if (clsFilter !== 'all') {
