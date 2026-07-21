@@ -269,11 +269,38 @@ class FirebaseService:
 
         status = "late" if time_str > CHECK_IN_DEADLINE else "present"
 
+        # Tra cứu tên thật của học sinh từ Firebase Database
+        student_name = student_id
+        try:
+            if self.use_rest_fallback:
+                import requests
+                r_st = requests.get(f"{self.database_url}students/{student_id}.json", timeout=3)
+                if r_st.status_code == 200 and r_st.json():
+                    student_name = r_st.json().get("name") or student_id
+            else:
+                st_data = db.reference(f"students/{student_id}").get()
+                if st_data and isinstance(st_data, dict):
+                    student_name = st_data.get("name") or student_id
+        except Exception as e:
+            logger.warning(f"Không thể lấy tên thật cho {student_id}: {e}")
+
         record = {
-            "student_name": student_id,
+            "id": student_id,
+            "student_name": student_name,
             "timestamp": time_str,
             "status": status,
-            "image_url": image_url
+            "photo": image_url or "",
+            "captured_photo": image_url or "",
+            "image_url": image_url or ""
+        }
+
+        display_status = "Có mặt" if status == "present" else "Đi trễ"
+        latest_record = {
+            "id": student_id,
+            "name": student_name,
+            "status": display_status,
+            "time": f"{today_str} {time_str}",
+            "photo": image_url or ""
         }
 
         if self.use_rest_fallback:
@@ -284,10 +311,17 @@ class FirebaseService:
                 
                 # Cập nhật thêm trạng thái vào bảng students để WebApp hiển thị lên Dashboard
                 student_url = f"{self.database_url}students/{student_id}.json"
-                requests.patch(student_url, json={"status": status, "time": time_str}, timeout=5)
+                patch_payload = {"status": display_status, "time": time_str}
+                if image_url:
+                    patch_payload["capturedPhoto"] = image_url
+                requests.patch(student_url, json=patch_payload, timeout=5)
                 
+                # Ghi nhận diện mới nhất vào System/Latest_Recognition để kích hoạt Welcome Panel ngay trên WebApp
+                latest_url = f"{self.database_url}System/Latest_Recognition.json"
+                requests.put(latest_url, json=latest_record, timeout=5)
+
                 if r.status_code == 200:
-                    logger.info(f"REST Fallback: Đã ghi điểm danh: {student_id} | {time_str} | {status}")
+                    logger.info(f"REST Fallback: Đã ghi điểm danh: {student_id} ({student_name}) | {time_str} | {status}")
                 else:
                     logger.error(f"REST Fallback Error {r.status_code}: {r.text}")
             except Exception as e:
@@ -299,9 +333,15 @@ class FirebaseService:
                 
                 # Cập nhật thêm trạng thái vào bảng students
                 student_ref = db.reference(f"students/{student_id}")
-                student_ref.update({"status": status, "time": time_str})
+                update_payload = {"status": display_status, "time": time_str}
+                if image_url:
+                    update_payload["capturedPhoto"] = image_url
+                student_ref.update(update_payload)
                 
-                logger.info(f"Đã ghi Firebase: {student_id} | {time_str} | {status}")
+                # Ghi nhận diện mới nhất vào System/Latest_Recognition
+                db.reference("System/Latest_Recognition").set(latest_record)
+
+                logger.info(f"Đã ghi Firebase: {student_id} ({student_name}) | {time_str} | {status}")
             except Exception as e:
                 logger.warning(f"Admin SDK ghi điểm danh thất bại ({e}). Tự động chuyển sang REST...")
                 self.use_rest_fallback = True

@@ -5,31 +5,40 @@ public class SchoolClass {
     private String desc;
     private String startTime;
     private String lateTime;
+    private String pickupTime;
     private int maxCapacity;
 
-    public SchoolClass() {}
+    public SchoolClass() {
+        this.startTime = "07:00";
+        this.lateTime = "08:15";
+        this.pickupTime = "16:30";
+        this.maxCapacity = 25;
+    }
 
     public SchoolClass(String name, String desc) {
         this.name = name;
         this.desc = desc;
         this.startTime = "07:00";
         this.lateTime = "08:15";
+        this.pickupTime = "16:30";
         this.maxCapacity = 25;
     }
 
-    public SchoolClass(String name, String desc, String startTime, String lateTime) {
+    public SchoolClass(String name, String desc, String startTime, String lateTime, String pickupTime) {
         this.name = name;
         this.desc = desc;
         this.startTime = startTime;
         this.lateTime = lateTime;
+        this.pickupTime = pickupTime;
         this.maxCapacity = 25;
     }
 
-    public SchoolClass(String name, String desc, String startTime, String lateTime, int maxCapacity) {
+    public SchoolClass(String name, String desc, String startTime, String lateTime, String pickupTime, int maxCapacity) {
         this.name = name;
         this.desc = desc;
         this.startTime = startTime;
         this.lateTime = lateTime;
+        this.pickupTime = pickupTime;
         this.maxCapacity = maxCapacity;
     }
 
@@ -44,6 +53,9 @@ public class SchoolClass {
 
     public String getLateTime() { return lateTime; }
     public void setLateTime(String lateTime) { this.lateTime = lateTime; }
+
+    public String getPickupTime() { return pickupTime; }
+    public void setPickupTime(String pickupTime) { this.pickupTime = pickupTime; }
 
     public int getMaxCapacity() { return maxCapacity; }
     public void setMaxCapacity(int maxCapacity) { this.maxCapacity = maxCapacity; }

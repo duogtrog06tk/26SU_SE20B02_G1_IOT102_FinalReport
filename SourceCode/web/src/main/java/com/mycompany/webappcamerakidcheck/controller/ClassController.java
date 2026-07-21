@@ -62,11 +62,48 @@ public class ClassController extends HttpServlet {
         }
     }
 
+    private static final String FIREBASE_DB_URL = "https://kidcheckdb-default-rtdb.asia-southeast1.firebasedatabase.app/";
+
+    private void syncClassesRest() {
+        try {
+            String urlString = FIREBASE_DB_URL + "classes.json";
+            java.net.URL url = java.net.URI.create(urlString).toURL();
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+
+            int code = conn.getResponseCode();
+            if (code == 200) {
+                java.io.InputStream is = conn.getInputStream();
+                java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(is, java.nio.charset.StandardCharsets.UTF_8));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+
+                String body = sb.toString();
+                if (body != null && !body.equals("null") && !body.isEmpty()) {
+                    java.lang.reflect.Type type = new com.google.gson.reflect.TypeToken<java.util.Map<String, SchoolClass>>(){}.getType();
+                    java.util.Map<String, SchoolClass> map = gson.fromJson(body, type);
+                    if (map != null && !map.isEmpty()) {
+                        localBackupList.clear();
+                        localBackupList.addAll(map.values());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("REST Class sync failed: " + e.getMessage());
+        }
+    }
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
+        syncClassesRest();
         try (PrintWriter out = response.getWriter()) {
             out.print(gson.toJson(localBackupList));
             out.flush();

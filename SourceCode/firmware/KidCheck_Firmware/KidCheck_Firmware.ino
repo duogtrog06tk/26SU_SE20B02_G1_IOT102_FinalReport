@@ -16,7 +16,7 @@ void initCamera();
 void alertBuzzer(int duration, int count);
 void showMessage(const char* line1, const char* line2);
 bool getAiServerIP();
-void sendBootStatus();
+void sendBootStatus(bool update_lcd = true);
 void handleCaptureRegister();
 void handleLEDControl();
 void handleReboot();
@@ -33,7 +33,8 @@ const char* firebase_host = "kidcheckdb-default-rtdb.asia-southeast1.firebasedat
 // Biến toàn cục lưu trữ địa chỉ URL động của AI-Server sau khi đọc từ Firebase
 String ai_server_base_url = "";
 
-// Biến lưu trữ cấu hình mạng AP nội bộ của ESP32-CAM
+// Biến cờ bảo vệ tài nguyên phần cứng camera tránh xung đột giữa Live Stream & Nhận diện PIR
+volatile bool is_recognizing = false;
 String ap_ssid = "KidCheck-Setup-Wifi";
 String ap_password = "admin123";  // Mật khẩu mặc định ban đầu (tối thiểu 8 ký tự)
 
@@ -161,14 +162,18 @@ bool getAiServerIP() {
   return false;
 }
 
-void sendBootStatus() {
+void sendBootStatus(bool update_lcd) {
   if (ai_server_base_url == "") return;
+
+  if (update_lcd) {
+    showMessage("Check AI Server...", "Connecting...");
+  }
 
   WiFiClient client;
   HTTPClient http;
   String target_url = ai_server_base_url + "/device-boot";
   http.begin(client, target_url);
-  http.setTimeout(1500);
+  http.setTimeout(2000);
   http.addHeader("Content-Type", "application/json");
 
   StaticJsonDocument<256> doc;
@@ -182,8 +187,22 @@ void sendBootStatus() {
   serializeJson(doc, requestBody);
   int httpResponseCode = http.POST(requestBody);
   
-  if (httpResponseCode <= 0) {
-    Serial.println("[HTTP] Gui status den AI-Server that bai. Xoa IP cache de tu dong lay lai.");
+  if (httpResponseCode > 0) {
+    Serial.println("[AI SERVER] Ket noi AI-Server THANH CONG: " + ai_server_base_url);
+    if (update_lcd) {
+      // Dòng 1: Check AI Server... | Dòng 2: AI Server OK!
+      showMessage("Check AI Server...", "AI Server OK!");
+      alertBuzzer(150, 1); // 1 tiếng bíp ngắn (tít)
+      delay(3000); // Giữ thông báo đúng 3 giây
+      showMessage("KidCheck System", "Ready..."); // Tự động chuyển ngay sang Ready...
+    }
+  } else {
+    Serial.println("[HTTP] Gui status den AI-Server THAT BAI (Response Code: " + String(httpResponseCode) + "). Vui long kiem tra IP / AI Server.");
+    if (update_lcd) {
+      // Dòng 1: AI Server Fail! | Dòng 2: Check IP / App (Giữ nguyên màn hình Fail để người dùng kiểm tra)
+      showMessage("AI Server Fail!", "Check IP / App");
+      alertBuzzer(500, 2); // Còi báo lỗi 2 tiếng bíp dài
+    }
     ai_server_base_url = "";
   }
   
@@ -401,7 +420,7 @@ void handleSaveWifi() {
     server.send(200, "text/html", msg);
     delay(2000);
 
-    showMessage("Ket noi mang", req_ssid.c_str());
+    showMessage("WiFi Connect...", req_ssid.c_str());
     WiFi.begin(req_ssid.c_str(), req_pass.c_str());
 
     int counter = 0;
@@ -411,7 +430,7 @@ void handleSaveWifi() {
     }
 
     if (WiFi.status() == WL_CONNECTED) {
-      showMessage("Ket noi OK!", WiFi.localIP().toString().c_str());
+      showMessage("WiFi Connected!", WiFi.localIP().toString().c_str());
       delay(2000);
 
       showMessage("Firebase Fetch", "Load Server IP");
@@ -427,9 +446,9 @@ void handleSaveWifi() {
         delay(1000);
       }
     } else {
-      showMessage("Ket noi loi!", "Try again");
+      showMessage("Connection Fail", "Try again");
       delay(2000);
-      showMessage("KidCheck System", "San sang AP...");
+      showMessage("KidCheck System", "AP Ready...");
     }
   } else {
     server.send(400, "text/plain", "Bad Request: Missing SSID or Password");
@@ -438,83 +457,102 @@ void handleSaveWifi() {
 
 bool isCaptivePortal() {
   if (!server.hostHeader().equalsIgnoreCase(WiFi.softAPIP().toString())) {
-    Serial.println("[DNS] Phat hien thiet bi kiem tra mang. Dang ep hien trang Portal...");
-    server.sendHeader("Location", String("http://") + WiFi.softAPIP().toString(), true);
-    server.send(302, "text/plain", "");
+    Serial.println("[DNS] Captive Portal redirected...");
+    server.sendHeader("Location", String("http://") + WiFi.softAPIP().toString() + "/", true);
+    server.send(302, "text/html", "<!DOCTYPE html><html><head><meta http-equiv='refresh' content='0;url=http://192.168.4.1/'><script>location.href='http://192.168.4.1/';</script></head><body>Redirecting to Captive Portal...</body></html>");
     return true;
   }
   return false;
 }
 
 // ============================================================================
-// KHỐI 4: VÒNG LẶP ĐIỂM DANH TỰ ĐỘNG (PIR CHÂN IO12 KÍCH HOẠT)
+// KHỐI 4: VÒNG LẶP ĐIỂM DANH TỰ ĐỘNG (PIR CHÂN IO12 KÍCH HOẠT TRONG 5 GIÂY)
 // ============================================================================
 void captureAndRecognize() {
+    is_recognizing = true;
     if (ai_server_base_url == "") {
         getAiServerIP();
     }
     
     if (ai_server_base_url == "") {
-        showMessage("Loi he thong!", "IP Server: Null");
+        showMessage("System Error!", "Server IP: Null");
+        delay(1500);
+        is_recognizing = false;
         return;
     }
 
-    showMessage("Chup anh...", "Gui đen AI-Server");
-    
-    // Đọc chân IO12 -> Bật LED chân IO2 báo hiệu bắt đầu chụp
     digitalWrite(LED_PIN, HIGH); 
+    showMessage("Motion Detected!", "Scanning Face 5s");
 
-    camera_fb_t * fb = esp_camera_fb_get();
-    if (!fb) {
-        showMessage("Loi Camera!", "Thu lai sau");
-        digitalWrite(LED_PIN, LOW);
-        return;
-    }
+    unsigned long start_time = millis();
+    bool recognized = false;
 
-    if (WiFi.status() == WL_CONNECTED) {
-        HTTPClient http;
-        String target_url = ai_server_base_url + "/recognize";
-        http.begin(target_url); 
-        http.addHeader("Content-Type", "image/jpeg");
+    // Vòng lặp 5 giây chụp và nhận diện liên tục cho đến khi thành công hoặc hết 5s
+    while (millis() - start_time < 5000) {
+        server.handleClient();
 
-        // Gửi POST Binary ảnh lên AI Server
-        int httpResponseCode = http.POST(fb->buf, fb->len);
-
-        if (httpResponseCode > 0) {
-            String response = http.getString();
-            StaticJsonDocument<200> doc;
-            DeserializationError error = deserializeJson(doc, response);
-
-            if (!error) {
-                bool success = doc["success"];
-                const char* name = doc["name"];
-
-                if (success) {
-                    // Điểm danh thành công: đổi chữ LCD, còi bíp kêu 1 tiếng dài
-                    showMessage("Xin chao Be!", name);
-                    alertBuzzer(200, 1);
-                    delay(3000);
-                } else {
-                    // Không trích xuất được: đổi chữ LCD, còi bíp kêu 3 tiếng ngắn
-                    showMessage("Nhan dien loi!", "Khong hop le");
-                    alertBuzzer(100, 3);
-                    delay(2000);
-                }
-            }
-        } else {
-            showMessage("Loi ket noi!", "AI Server Down");
-            alertBuzzer(500, 2);
-            delay(2000);
-            getAiServerIP();
+        camera_fb_t * fb = esp_camera_fb_get();
+        if (!fb) {
+            delay(100);
+            continue;
         }
-        http.end();
-    } else {
-        showMessage("Mat WiFi!", "Dang ket noi lai");
+
+        if (WiFi.status() == WL_CONNECTED) {
+            HTTPClient http;
+            String target_url = ai_server_base_url + "/recognize";
+            http.begin(target_url); 
+            http.addHeader("Content-Type", "image/jpeg");
+            http.setTimeout(2500);
+
+            // Gửi POST Binary ảnh lên AI Server
+            int httpResponseCode = http.POST(fb->buf, fb->len);
+
+            if (httpResponseCode > 0) {
+                String response = http.getString();
+                StaticJsonDocument<250> doc;
+                DeserializationError error = deserializeJson(doc, response);
+
+                if (!error) {
+                    bool success = doc["success"];
+                    const char* name = doc["name"];
+
+                    if (success && name != NULL) {
+                        // Line 1: Recognized... | Line 2: HS001 OK!
+                        showMessage("Recognized...", name);
+                        alertBuzzer(200, 1);
+                        recognized = true;
+                        http.end();
+                        esp_camera_fb_return(fb);
+                        delay(2500); // Tạm dừng để học sinh đi qua
+                        break;
+                    }
+                }
+            } else {
+                Serial.println("[HTTP] Image upload error: " + String(httpResponseCode));
+            }
+            http.end();
+        } else {
+            showMessage("WiFi Disconnected", "Reconnecting...");
+            esp_camera_fb_return(fb);
+            delay(500);
+            break;
+        }
+
+        esp_camera_fb_return(fb);
+        delay(200); // Khoảng nghỉ nhỏ giữa các lần chụp trong cửa sổ 5s
     }
 
-    esp_camera_fb_return(fb);
     digitalWrite(LED_PIN, LOW); 
-    showMessage("KidCheck System", "San sang...");
+
+    if (!recognized) {
+        // Hết 5s không nhận diện được: đổi chữ LCD, còi bíp kêu 3 tiếng ngắn
+        showMessage("Recognition Fail", "Unknown/Invalid");
+        alertBuzzer(100, 3);
+        delay(1500);
+    }
+
+    showMessage("KidCheck System", "Ready...");
+    is_recognizing = false;
 }
 
 // ============================================================================
@@ -544,11 +582,13 @@ void setup() {
     Wire.begin(I2C_SDA, I2C_SCL);
     lcd.init();
     lcd.backlight();
-    showMessage("KidCheck IoT", "Dang khoi dong...");
+    showMessage("KidCheck IoT", "Booting system...");
     delay(1000);
 
     // Cấu hình chế độ mạng song song (WIFI_AP_STA)
     WiFi.mode(WIFI_AP_STA);
+    IPAddress apIP(192, 168, 4, 1);
+    WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
     WiFi.softAP(ap_ssid.c_str(), ap_password.c_str());
     Serial.println("[AP] Mang phat song: " + ap_ssid + " | Mk: " + ap_password);
     Serial.print("[AP] Dia chi IP AP: ");
@@ -572,11 +612,11 @@ void setup() {
         int retry = 0;
         while (!getAiServerIP() && retry < 5) { delay(1000); retry++; }
         if (ai_server_base_url != "") {
-            sendBootStatus();
+            sendBootStatus(true);
         }
     } else {
         Serial.println("[WiFi] Khong tim thay WiFi. Dang cho cau hinh AP Portal.");
-        showMessage("Mo Cong Cau Hinh", "Ssid:Cam-Setup");
+        showMessage("Setup AP Portal", "SSID:KidCheck-AP");
     }
 
     // Khởi động DNS Server cổng 53 phục vụ chuyển hướng Captive Portal
@@ -590,9 +630,16 @@ void setup() {
     server.on("/reboot", HTTP_GET, handleReboot);
     server.on("/stream", HTTP_GET, handleStream);
     
+    // Bẫy chuyển hướng Captive Portal tự động cho Windows/Android/iOS
+    server.on("/generate_204", HTTP_GET, handleWifiPortal);
+    server.on("/connecttest.txt", HTTP_GET, handleWifiPortal);
+    server.on("/redirect", HTTP_GET, handleWifiPortal);
+    server.on("/hotspot-detect.html", HTTP_GET, handleWifiPortal);
+    server.on("/canonical.html", HTTP_GET, handleWifiPortal);
+    
     server.onNotFound([]() {
         if (!isCaptivePortal()) {
-            server.send(404, "text/plain", "Not Found");
+            handleWifiPortal();
         }
     });
 
@@ -606,49 +653,49 @@ void loop() {
     dnsServer.processNextRequest();
     server.handleClient();
 
-    if (WiFi.status() == WL_CONNECTED) {
-        // Đồng bộ mật khẩu AP tự động từ Firebase sau mỗi 15 giây
-        static unsigned long last_sync_time = 0;
-        if (millis() - last_sync_time > 15000) {
-            updateApConfigFromFirebase();
-            last_sync_time = millis();
+    // Heartbeat định kỳ 30 giây gửi trạng thái ngầm (KHÔNG báo còi, KHÔNG đổi LCD)
+    static unsigned long last_heartbeat_time = 0;
+    if (millis() - last_heartbeat_time > 30000) {
+        if (ai_server_base_url != "") {
+            sendBootStatus(false); // Gửi ngầm: update_lcd = false
         }
+        last_heartbeat_time = millis();
+    }
 
-        // Heartbeat gửi trạng thái và IP động lên Firebase định kỳ 30 giây
-        static unsigned long last_heartbeat_time = 0;
-        if (millis() - last_heartbeat_time > 30000) {
-            if (ai_server_base_url == "") {
-                getAiServerIP();
-            }
-            sendBootStatus();
-            last_heartbeat_time = millis();
-        }
-
-        // Điểm danh thời gian thực qua cảm biến PIR chân IO12
-        if (digitalRead(PIR_PIN) == HIGH) {
-            captureAndRecognize();
-            while(digitalRead(PIR_PIN) == HIGH) {
-                server.handleClient();
-                delay(200);
-            }
+    // Điểm danh thời gian thực qua cảm biến PIR chân IO12 (Hoạt động cả khi Online lẫn Standalone AP Offline)
+    if (digitalRead(PIR_PIN) == HIGH) {
+        captureAndRecognize();
+        while (digitalRead(PIR_PIN) == HIGH) {
+            dnsServer.processNextRequest();
+            server.handleClient();
+            delay(200);
         }
     }
     delay(10);
 }
 
+#define PART_BOUNDARY "123456789000000000000987654321"
+static const char* _STREAM_CONTENT_TYPE = "multipart/x-mixed-replace; boundary=" PART_BOUNDARY;
+static const char* _STREAM_BOUNDARY = "\r\n--" PART_BOUNDARY "\r\n";
+static const char* _STREAM_PART = "Content-Type: image/jpeg\r\nContent-Length: %u\r\n\r\n";
+
 void handleStream() {
   server.sendHeader("Access-Control-Allow-Origin", "*");
-  camera_fb_t* fb = esp_camera_fb_get();
-  if (!fb) {
-    server.send(500, "text/plain", "Camera capture failed");
+  
+  if (is_recognizing) {
+    server.send(503, "text/plain", "Camera busy recognizing");
     return;
   }
-  
+
+  camera_fb_t * fb = esp_camera_fb_get();
+  if (!fb) {
+    server.send(500, "text/plain", "Camera capture error");
+    return;
+  }
+
   server.setContentLength(fb->len);
   server.send(200, "image/jpeg", "");
-  
   WiFiClient client = server.client();
   client.write(fb->buf, fb->len);
-  
   esp_camera_fb_return(fb);
 }

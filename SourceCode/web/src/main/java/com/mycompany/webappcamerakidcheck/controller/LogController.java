@@ -23,6 +23,8 @@ public class LogController extends HttpServlet {
     private static final List<AttendanceLog> localBackupList = new ArrayList<>();
     private final Gson gson = new Gson();
 
+    private static final String FIREBASE_DB_URL = "https://kidcheckdb-default-rtdb.asia-southeast1.firebasedatabase.app/";
+
     @Override
     public void init() throws ServletException {
         try {
@@ -43,6 +45,9 @@ public class LogController extends HttpServlet {
                                     String studentName = studentSnapshot.child("student_name").getValue(String.class);
                                     String timestamp   = studentSnapshot.child("timestamp").getValue(String.class);
                                     String status      = studentSnapshot.child("status").getValue(String.class);
+                                    String photo       = studentSnapshot.child("photo").getValue(String.class);
+                                    if (photo == null) photo = studentSnapshot.child("captured_image").getValue(String.class);
+                                    if (photo == null) photo = studentSnapshot.child("captured_photo").getValue(String.class);
                                     String studentId   = studentSnapshot.getKey();
 
                                     AttendanceLog log = new AttendanceLog();
@@ -53,7 +58,7 @@ public class LogController extends HttpServlet {
                                     String dateStr = dateSnapshot.getKey();
                                     log.setTime(dateStr + " " + (timestamp != null ? timestamp : "--:--"));
                                     log.setClassName("");
-                                    log.setPhoto("");
+                                    log.setPhoto(photo != null ? photo : "");
                                     log.setParentName("");
                                     log.setParentPhone("");
                                     log.setPickupStatus("");
@@ -72,16 +77,81 @@ public class LogController extends HttpServlet {
                 @Override
                 public void onCancelled(DatabaseError databaseError) {
                     System.err.println("Firebase Attendance sync cancelled: " + databaseError.getMessage());
+                    syncLogsRest();
                 }
             });
         } catch (Exception e) {
             System.err.println("Không thể thiết lập lắng nghe Attendance trên Firebase: " + e.getMessage());
+            syncLogsRest();
+        }
+    }
+
+    private void syncLogsRest() {
+        try {
+            String urlString = FIREBASE_DB_URL + "attendance.json";
+            java.net.URL url = java.net.URI.create(urlString).toURL();
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+
+            int code = conn.getResponseCode();
+            if (code == 200) {
+                java.io.InputStream is = conn.getInputStream();
+                java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(is, java.nio.charset.StandardCharsets.UTF_8));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+
+                String body = sb.toString();
+                if (body != null && !body.equals("null") && !body.isEmpty()) {
+                    com.google.gson.JsonObject root = gson.fromJson(body, com.google.gson.JsonObject.class);
+                    if (root != null) {
+                        localBackupList.clear();
+                        for (String dateKey : root.keySet()) {
+                            com.google.gson.JsonElement dateElem = root.get(dateKey);
+                            if (dateElem.isJsonObject()) {
+                                com.google.gson.JsonObject dateObj = dateElem.getAsJsonObject();
+                                for (String studentId : dateObj.keySet()) {
+                                    com.google.gson.JsonElement stElem = dateObj.get(studentId);
+                                    if (stElem.isJsonObject()) {
+                                        com.google.gson.JsonObject stObj = stElem.getAsJsonObject();
+                                        String studentName = stObj.has("student_name") ? stObj.get("student_name").getAsString() : studentId;
+                                        String timestamp = stObj.has("timestamp") ? stObj.get("timestamp").getAsString() : "--:--";
+                                        String status = stObj.has("status") ? stObj.get("status").getAsString() : "present";
+                                        String photo = stObj.has("photo") ? stObj.get("photo").getAsString() : (stObj.has("captured_image") ? stObj.get("captured_image").getAsString() : (stObj.has("captured_photo") ? stObj.get("captured_photo").getAsString() : ""));
+
+                                        AttendanceLog log = new AttendanceLog();
+                                        log.setId(studentId);
+                                        log.setName(studentName);
+                                        log.setStatus(status);
+                                        log.setTime(dateKey + " " + timestamp);
+                                        log.setClassName("");
+                                        log.setPhoto(photo);
+                                        log.setParentName("");
+                                        log.setParentPhone("");
+                                        log.setPickupStatus("");
+                                        localBackupList.add(log);
+                                    }
+                                }
+                            }
+                        }
+                        System.out.println("REST LogController đồng bộ attendance thành công: " + localBackupList.size() + " lượt.");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("REST LogController sync failed: " + e.getMessage());
         }
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        syncLogsRest();
+
         String exportParam = request.getParameter("export");
         if ("true".equalsIgnoreCase(exportParam)) {
             response.setContentType("text/csv; charset=UTF-8");
@@ -149,6 +219,68 @@ public class LogController extends HttpServlet {
                 }
             }
         } catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        }
+    }
+
+    @Override
+    protected void doDelete(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String studentId = request.getParameter("id");
+        if (studentId != null && !studentId.trim().isEmpty()) {
+            String targetId = studentId.trim();
+            localBackupList.removeIf(log -> log.getId() != null && 
+                (log.getId().equals(targetId) || log.getId().startsWith(targetId + "_")));
+            
+            try {
+                // Xóa khỏi Firebase Database tất cả các nhánh con khớp với targetId
+                String dateStr = new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date());
+                DatabaseReference ref = FirebaseConfig.getDatabase().getReference("attendance/" + dateStr);
+                ref.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot snapshot) {
+                        if (snapshot.exists()) {
+                            for (DataSnapshot child : snapshot.getChildren()) {
+                                String key = child.getKey();
+                                if (key != null && (key.equals(targetId) || key.startsWith(targetId + "_") || key.contains(targetId))) {
+                                    child.getRef().removeValueAsync();
+                                }
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError error) {}
+                });
+
+                // Cũng xóa từ nhánh "logs/" nếu có
+                DatabaseReference logsRef = FirebaseConfig.getDatabase().getReference("logs");
+                logsRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot snapshot) {
+                        if (snapshot.exists()) {
+                            for (DataSnapshot child : snapshot.getChildren()) {
+                                String logId = child.child("id").getValue(String.class);
+                                if (logId != null && (logId.equals(targetId) || logId.startsWith(targetId + "_"))) {
+                                    child.getRef().removeValueAsync();
+                                }
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError error) {}
+                });
+            } catch (Exception e) {
+                System.err.println("Lỗi xóa Firebase log từ Java backend: " + e.getMessage());
+            }
+
+            response.setStatus(HttpServletResponse.SC_OK);
+            response.setContentType("application/json");
+            try (PrintWriter out = response.getWriter()) {
+                out.print("{\"success\":true,\"message\":\"Deleted log successfully\"}");
+            }
+        } else {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         }
     }

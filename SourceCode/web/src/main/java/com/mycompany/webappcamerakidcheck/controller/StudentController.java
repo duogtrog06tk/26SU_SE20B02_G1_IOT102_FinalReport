@@ -149,9 +149,7 @@ public class StudentController extends HttpServlet {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
-        if (localBackupList.isEmpty()) {
-            syncStudentsRest();
-        }
+        syncStudentsRest();
 
         try (PrintWriter out = response.getWriter()) {
             out.print(gson.toJson(localBackupList));
