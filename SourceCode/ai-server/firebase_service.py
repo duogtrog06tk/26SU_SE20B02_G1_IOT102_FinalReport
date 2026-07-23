@@ -9,6 +9,8 @@ cần biết Firebase hoạt động ra sao.
 
 import logging
 import time
+import requests
+import email_service
 from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, db
@@ -271,18 +273,36 @@ class FirebaseService:
 
         # Tra cứu tên thật của học sinh từ Firebase Database
         student_name = student_id
+        parent_email = None
+        existing_log = None
         try:
             if self.use_rest_fallback:
                 import requests
                 r_st = requests.get(f"{self.database_url}students/{student_id}.json", timeout=3)
                 if r_st.status_code == 200 and r_st.json():
-                    student_name = r_st.json().get("name") or student_id
+                    student_data = r_st.json()
+                    student_name = student_data.get("name") or student_id
+                    parent_email = student_data.get("parentEmail")
+                
+                # Fetch existing attendance for today
+                r_att = requests.get(f"{self.database_url}attendance/{today_str}/{student_id}_in.json", timeout=3)
+                if r_att.status_code == 200 and r_att.json():
+                    existing_log = r_att.json()
             else:
                 st_data = db.reference(f"students/{student_id}").get()
                 if st_data and isinstance(st_data, dict):
                     student_name = st_data.get("name") or student_id
+                    parent_email = st_data.get("parentEmail")
+                
+                # Fetch existing attendance for today
+                existing_log = db.reference(f"attendance/{today_str}/{student_id}_in").get()
         except Exception as e:
-            logger.warning(f"Không thể lấy tên thật cho {student_id}: {e}")
+            logger.warning(f"Không thể lấy thông tin cho {student_id}: {e}")
+
+        if existing_log and isinstance(existing_log, dict):
+            # Nếu đã có điểm danh, giữ nguyên timestamp và status
+            time_str = existing_log.get("timestamp", time_str)
+            status = existing_log.get("status", status)
 
         record = {
             "id": student_id,
@@ -306,7 +326,7 @@ class FirebaseService:
         if self.use_rest_fallback:
             try:
                 import requests
-                req_url = f"{self.database_url}attendance/{today_str}/{student_id}.json"
+                req_url = f"{self.database_url}attendance/{today_str}/{student_id}_in.json"
                 r = requests.put(req_url, json=record, timeout=5)
                 
                 # Cập nhật thêm trạng thái vào bảng students để WebApp hiển thị lên Dashboard
@@ -322,13 +342,24 @@ class FirebaseService:
 
                 if r.status_code == 200:
                     logger.info(f"REST Fallback: Đã ghi điểm danh: {student_id} ({student_name}) | {time_str} | {status}")
+                    
+                    # Kích hoạt gửi Email nếu có Parent Email
+                    if parent_email:
+                        email_service.send_attendance_email_async(
+                            parent_email=parent_email,
+                            student_name=student_name,
+                            time_str=time_str,
+                            base64_image=image_url,
+                            is_late=(status == "late"),
+                            is_pickup=False
+                        )
                 else:
                     logger.error(f"REST Fallback Error {r.status_code}: {r.text}")
             except Exception as e:
                 logger.error(f"Lỗi khi REST ghi điểm danh: {e}")
         else:
             try:
-                ref = db.reference(f"attendance/{today_str}/{student_id}")
+                ref = db.reference(f"attendance/{today_str}/{student_id}_in")
                 ref.set(record)
                 
                 # Cập nhật thêm trạng thái vào bảng students
@@ -342,6 +373,18 @@ class FirebaseService:
                 db.reference("System/Latest_Recognition").set(latest_record)
 
                 logger.info(f"Đã ghi Firebase: {student_id} ({student_name}) | {time_str} | {status}")
+                
+                # Kích hoạt gửi Email nếu có Parent Email
+                if parent_email:
+                    email_service.send_attendance_email_async(
+                        parent_email=parent_email,
+                        student_name=student_name,
+                        time_str=time_str,
+                        base64_image=image_url,
+                        is_late=(status == "late"),
+                        is_pickup=False
+                    )
+
             except Exception as e:
                 logger.warning(f"Admin SDK ghi điểm danh thất bại ({e}). Tự động chuyển sang REST...")
                 self.use_rest_fallback = True

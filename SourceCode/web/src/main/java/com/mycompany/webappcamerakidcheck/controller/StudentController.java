@@ -1,5 +1,6 @@
 package com.mycompany.webappcamerakidcheck.controller;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -17,12 +18,14 @@ import com.google.firebase.database.ValueEventListener;
 import com.mycompany.webappcamerakidcheck.config.FirebaseConfig;
 import com.mycompany.webappcamerakidcheck.model.Student;
 
-@WebServlet(name = "StudentController", urlPatterns = { "/api/students" })
+@WebServlet(name = "StudentController", urlPatterns = { "/api/students", "/api/reset-attendance" })
 public class StudentController extends HttpServlet {
 
     private static final List<Student> localBackupList = new ArrayList<>();
     private static volatile boolean useRestFallback = true; // Force REST fallback always
     private final Gson gson = new Gson();
+    
+    private java.util.concurrent.ScheduledExecutorService scheduler;
 
     private static final String FIREBASE_DB_URL = "https://kidcheckdb-default-rtdb.asia-southeast1.firebasedatabase.app/";
 
@@ -59,6 +62,48 @@ public class StudentController extends HttpServlet {
             System.err.println("Không thể thiết lập lắng nghe Firebase: " + e.getMessage());
             useRestFallback = true;
             syncStudentsRest();
+        }
+
+        // --- LẬP LỊCH RESET ĐIỂM DANH TỰ ĐỘNG LÚC NỬA ĐÊM ---
+        scheduler = java.util.concurrent.Executors.newSingleThreadScheduledExecutor();
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.LocalDateTime nextMidnight = now.toLocalDate().plusDays(1).atStartOfDay();
+        long initialDelay = java.time.Duration.between(now, nextMidnight).getSeconds();
+        
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                System.out.println("Bắt đầu reset điểm danh cho ngày mới...");
+                resetAllAttendance();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }, initialDelay, 24 * 60 * 60, java.util.concurrent.TimeUnit.SECONDS);
+    }
+    
+    @Override
+    public void destroy() {
+        if (scheduler != null) {
+            scheduler.shutdownNow();
+        }
+        super.destroy();
+    }
+    
+    public void resetAllAttendance() {
+        for (Student s : localBackupList) {
+            s.setStatus("Chưa điểm danh");
+            s.setTime("");
+            s.setPickupStatus("Chưa đến");
+            
+            if (useRestFallback) {
+                saveStudentRest(s);
+            } else {
+                try {
+                    DatabaseReference ref = FirebaseConfig.getDatabase().getReference("students");
+                    ref.child(s.getId()).setValueAsync(s);
+                } catch (Exception e) {
+                    saveStudentRest(s);
+                }
+            }
         }
     }
 
@@ -158,10 +203,29 @@ public class StudentController extends HttpServlet {
     }
 
     @Override
+    protected void doOptions(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+        response.setStatus(HttpServletResponse.SC_OK);
+    }
+
+    @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
+        
+        String path = request.getRequestURI();
+        if (path.endsWith("/reset-attendance")) {
+            resetAllAttendance();
+            response.setStatus(HttpServletResponse.SC_OK);
+            try (PrintWriter out = response.getWriter()) {
+                out.print("{\"success\":true, \"message\":\"Đã reset điểm danh cho ngày mới\"}");
+            }
+            return;
+        }
+
         try {
             Student newStudent = gson.fromJson(request.getReader(), Student.class);
             if (newStudent != null && newStudent.getId() != null) {
@@ -195,6 +259,37 @@ public class StudentController extends HttpServlet {
 
                 if (saved) {
                     localBackupList.add(newStudent);
+                    
+                    // Tạo tài khoản phụ huynh nếu có parentEmail (Hỗ trợ 1 phụ huynh nhiều con)
+                    if (newStudent.getParentEmail() != null && !newStudent.getParentEmail().trim().isEmpty()) {
+                        String email = newStudent.getParentEmail().trim();
+                        String parentName = newStudent.getParentName() != null ? newStudent.getParentName() : "Phụ huynh bé " + newStudent.getName();
+                        
+                        com.mycompany.webappcamerakidcheck.model.Account existingAcc = com.mycompany.webappcamerakidcheck.controller.AccountController.getAccountByEmail(email);
+                        String newLinkedId = newStudent.getId();
+                        
+                        if (existingAcc != null && "parent".equals(existingAcc.getRole())) {
+                            String currentLinked = existingAcc.getLinkedStudentId();
+                            if (currentLinked == null || currentLinked.trim().isEmpty()) {
+                                currentLinked = newLinkedId;
+                            } else {
+                                java.util.List<String> ids = new java.util.ArrayList<>(java.util.Arrays.asList(currentLinked.split(",")));
+                                if (!ids.contains(newLinkedId)) {
+                                    ids.add(newLinkedId);
+                                    currentLinked = String.join(",", ids);
+                                }
+                            }
+                            existingAcc.setLinkedStudentId(currentLinked);
+                            existingAcc.setName(parentName);
+                            String key = email.replaceAll("[^a-zA-Z0-9]", "_");
+                            com.mycompany.webappcamerakidcheck.controller.AccountController.saveAccountRest(key, existingAcc);
+                        } else {
+                            com.mycompany.webappcamerakidcheck.model.Account parentAcc = new com.mycompany.webappcamerakidcheck.model.Account(email, "123456", "parent", parentName, newLinkedId);
+                            String key = email.replaceAll("[^a-zA-Z0-9]", "_");
+                            com.mycompany.webappcamerakidcheck.controller.AccountController.saveAccountRest(key, parentAcc);
+                        }
+                    }
+
                     response.setStatus(HttpServletResponse.SC_CREATED);
                     try (PrintWriter out = response.getWriter()) {
                         out.print(gson.toJson(newStudent));
@@ -238,6 +333,36 @@ public class StudentController extends HttpServlet {
                     localBackupList.removeIf(s -> s.getId().equalsIgnoreCase(updateData.getId()));
                     localBackupList.add(updateData);
 
+                    // Cập nhật tài khoản phụ huynh nếu có parentEmail (Hỗ trợ 1 phụ huynh nhiều con)
+                    if (updateData.getParentEmail() != null && !updateData.getParentEmail().trim().isEmpty()) {
+                        String email = updateData.getParentEmail().trim();
+                        String parentName = updateData.getParentName() != null ? updateData.getParentName() : "Phụ huynh bé " + updateData.getName();
+                        
+                        com.mycompany.webappcamerakidcheck.model.Account existingAcc = com.mycompany.webappcamerakidcheck.controller.AccountController.getAccountByEmail(email);
+                        String newLinkedId = updateData.getId();
+                        
+                        if (existingAcc != null && "parent".equals(existingAcc.getRole())) {
+                            String currentLinked = existingAcc.getLinkedStudentId();
+                            if (currentLinked == null || currentLinked.trim().isEmpty()) {
+                                currentLinked = newLinkedId;
+                            } else {
+                                java.util.List<String> ids = new java.util.ArrayList<>(java.util.Arrays.asList(currentLinked.split(",")));
+                                if (!ids.contains(newLinkedId)) {
+                                    ids.add(newLinkedId);
+                                    currentLinked = String.join(",", ids);
+                                }
+                            }
+                            existingAcc.setLinkedStudentId(currentLinked);
+                            existingAcc.setName(parentName);
+                            String key = email.replaceAll("[^a-zA-Z0-9]", "_");
+                            com.mycompany.webappcamerakidcheck.controller.AccountController.saveAccountRest(key, existingAcc);
+                        } else {
+                            com.mycompany.webappcamerakidcheck.model.Account parentAcc = new com.mycompany.webappcamerakidcheck.model.Account(email, "123456", "parent", parentName, newLinkedId);
+                            String key = email.replaceAll("[^a-zA-Z0-9]", "_");
+                            com.mycompany.webappcamerakidcheck.controller.AccountController.saveAccountRest(key, parentAcc);
+                        }
+                    }
+
                     response.setStatus(HttpServletResponse.SC_OK);
                     try (PrintWriter out = response.getWriter()) {
                         out.print(gson.toJson(updateData));
@@ -275,6 +400,10 @@ public class StudentController extends HttpServlet {
 
             if (deleted) {
                 localBackupList.removeIf(s -> s.getId().equalsIgnoreCase(studentId));
+                
+                // Xóa tất cả log điểm danh của học sinh này trên Firebase
+                deleteAttendanceLogsRest(studentId);
+                
                 try (PrintWriter out = response.getWriter()) {
                     out.print("{\"success\":true}");
                 }
@@ -284,5 +413,52 @@ public class StudentController extends HttpServlet {
             return;
         }
         response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+    }
+    
+    private void deleteAttendanceLogsRest(String studentId) {
+        try {
+            // Fetch danh sách tất cả các ngày từ node attendance
+            String attUrl = FIREBASE_DB_URL + "attendance.json?shallow=true";
+            java.net.URL url = java.net.URI.create(attUrl).toURL();
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+            int code = conn.getResponseCode();
+            if (code != 200) return;
+            
+            BufferedReader reader = new BufferedReader(new java.io.InputStreamReader(conn.getInputStream(), java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) sb.append(line);
+            reader.close();
+            
+            String body = sb.toString();
+            if (body == null || body.equals("null") || body.isEmpty()) return;
+            
+            // Parse danh sách ngày (shallow=true trả về {"2026-07-01": true, ...})
+            // Dùng simple string parsing để tránh import phức tạp
+            java.util.regex.Pattern datePattern = java.util.regex.Pattern.compile("\"(\\d{4}-\\d{2}-\\d{2})\"");
+            java.util.regex.Matcher matcher = datePattern.matcher(body);
+            
+            while (matcher.find()) {
+                String dateKey = matcher.group(1);
+                // Xóa node: attendance/{date}/{studentId}
+                String deleteUrl = FIREBASE_DB_URL + "attendance/" + dateKey + "/" + studentId + ".json";
+                try {
+                    java.net.URL delUrl = java.net.URI.create(deleteUrl).toURL();
+                    java.net.HttpURLConnection delConn = (java.net.HttpURLConnection) delUrl.openConnection();
+                    delConn.setRequestMethod("DELETE");
+                    delConn.setConnectTimeout(3000);
+                    delConn.setReadTimeout(3000);
+                    int delCode = delConn.getResponseCode();
+                    System.out.println("Xóa log điểm danh " + studentId + " ngày " + dateKey + " -> HTTP " + delCode);
+                } catch (Exception e) {
+                    System.err.println("Lỗi xóa log ngày " + dateKey + ": " + e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi xóa attendance logs: " + e.getMessage());
+        }
     }
 }

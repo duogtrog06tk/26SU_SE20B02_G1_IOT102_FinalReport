@@ -1,5 +1,7 @@
 package com.mycompany.webappcamerakidcheck.model;
+import com.google.firebase.database.IgnoreExtraProperties;
 
+@IgnoreExtraProperties
 public class Student {
     private String id;
     private String name;
@@ -11,6 +13,7 @@ public class Student {
     private String parentPhone;
     private String healthNote;
     private String pickupStatus; // "Chưa đến", "Đang ở lớp", "Đã đón về"
+    private String parentEmail;
 
     public Student() {}
 
@@ -70,4 +73,7 @@ public class Student {
 
     public String getPickupStatus() { return pickupStatus; }
     public void setPickupStatus(String pickupStatus) { this.pickupStatus = pickupStatus; }
+
+    public String getParentEmail() { return parentEmail; }
+    public void setParentEmail(String parentEmail) { this.parentEmail = parentEmail; }
 }

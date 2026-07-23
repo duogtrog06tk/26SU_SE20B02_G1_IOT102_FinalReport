@@ -141,15 +141,14 @@ class FaceService:
             student_id: mã định danh học sinh, dùng làm tên thư mục
                         (ví dụ "HS010_VuGiang" — không dấu, không khoảng trắng)
             image_array: ảnh dạng numpy array RGB (giống recognize())
-
-        Output: dict:
-            {"success": True, "photo_count": 3} — lưu thành công, đã có 3 ảnh
-            {"success": False, "error": "..."} — ảnh không có khuôn mặt rõ, không lưu
-
-        Nếu lỗi: nếu ảnh không có khuôn mặt nào nhận ra được (học sinh đứng lệch,
-        ảnh mờ, thiếu sáng), trả success=False kèm lý do — KHÔNG lưu ảnh xấu vào
-        known_faces/ vì sẽ làm giảm độ chính xác nhận diện về sau.
+        - student_id: mã học sinh
+        - image_array: ảnh (numpy array RGB)
+        
+        Output: dictionary kết quả
         """
+        # 1. Xóa các encodings cũ của học sinh này (nếu có) để tránh nhận diện sai khi cập nhật ảnh mới
+        self.remove_face_encodings(student_id)
+
         face_locations = face_recognition.face_locations(image_array)
 
         if len(face_locations) == 0:
@@ -175,3 +174,10 @@ class FaceService:
         self.known_names.append(student_id)
 
         return {"success": True, "photo_count": next_index}
+    def remove_face_encodings(self, student_id):
+        indices_to_remove = [i for i, name in enumerate(self.known_names) if name == student_id]
+        for i in sorted(indices_to_remove, reverse=True):
+            del self.known_names[i]
+            del self.known_encodings[i]
+        if indices_to_remove:
+            logger.info(f'Da xoa {len(indices_to_remove)} encodings cu cua {student_id} trong RAM.')

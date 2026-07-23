@@ -1,5 +1,7 @@
 package com.mycompany.webappcamerakidcheck.model;
+import com.google.firebase.database.IgnoreExtraProperties;
 
+@IgnoreExtraProperties
 public class AttendanceLog {
     private String id;
     private String name;

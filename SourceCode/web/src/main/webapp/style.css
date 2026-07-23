@@ -750,6 +750,9 @@ textarea.form-input {
 }
 .form-row .form-group {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
 }
 
 /* =====================================================
@@ -1085,7 +1088,7 @@ textarea.form-input {
 .student-card.status-default::before { background: #CBD5E1; }
 
 .student-card-img {
-    height: 180px;
+    height: 220px;
     background: #F1F5F9;
     background-size: cover;
     background-position: center;

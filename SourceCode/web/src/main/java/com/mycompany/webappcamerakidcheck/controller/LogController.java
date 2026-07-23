@@ -233,7 +233,7 @@ public class LogController extends HttpServlet {
                 (log.getId().equals(targetId) || log.getId().startsWith(targetId + "_")));
             
             try {
-                // Xóa khỏi Firebase Database tất cả các nhánh con khớp với targetId
+                // Xóa khỏi Firebase Database tất cả các nhánh con khớp với targetId bằng Admin SDK
                 String dateStr = new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date());
                 DatabaseReference ref = FirebaseConfig.getDatabase().getReference("attendance/" + dateStr);
                 ref.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -252,27 +252,43 @@ public class LogController extends HttpServlet {
                     @Override
                     public void onCancelled(DatabaseError error) {}
                 });
+            } catch (Exception e) {
+                System.err.println("Lỗi xóa Firebase log bằng Admin SDK: " + e.getMessage());
+            }
 
-                // Cũng xóa từ nhánh "logs/" nếu có
-                DatabaseReference logsRef = FirebaseConfig.getDatabase().getReference("logs");
-                logsRef.addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot snapshot) {
-                        if (snapshot.exists()) {
-                            for (DataSnapshot child : snapshot.getChildren()) {
-                                String logId = child.child("id").getValue(String.class);
-                                if (logId != null && (logId.equals(targetId) || logId.startsWith(targetId + "_"))) {
-                                    child.getRef().removeValueAsync();
-                                }
+            // Đồng thời dùng REST API xóa trực tiếp để đảm bảo thành công kể cả khi Admin SDK lỗi
+            try {
+                String dateStr = new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date());
+                
+                // Fetch danh sách key trong ngày hôm đó
+                String attUrl = FIREBASE_DB_URL + "attendance/" + dateStr + ".json?shallow=true";
+                java.net.URL url = new java.net.URL(attUrl);
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                if (conn.getResponseCode() == 200) {
+                    java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream(), "UTF-8"));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) sb.append(line);
+                    reader.close();
+                    
+                    String body = sb.toString();
+                    if (body != null && !body.equals("null") && !body.isEmpty()) {
+                        java.util.regex.Pattern keyPattern = java.util.regex.Pattern.compile("\"([^\"]+)\"\\s*:");
+                        java.util.regex.Matcher matcher = keyPattern.matcher(body);
+                        while (matcher.find()) {
+                            String key = matcher.group(1);
+                            if (key != null && (key.equals(targetId) || key.startsWith(targetId + "_") || key.contains(targetId))) {
+                                String delUrlStr = FIREBASE_DB_URL + "attendance/" + dateStr + "/" + key + ".json";
+                                java.net.HttpURLConnection delConn = (java.net.HttpURLConnection) new java.net.URL(delUrlStr).openConnection();
+                                delConn.setRequestMethod("DELETE");
+                                delConn.getResponseCode();
                             }
                         }
                     }
-
-                    @Override
-                    public void onCancelled(DatabaseError error) {}
-                });
+                }
             } catch (Exception e) {
-                System.err.println("Lỗi xóa Firebase log từ Java backend: " + e.getMessage());
+                System.err.println("Lỗi xóa Firebase log bằng REST: " + e.getMessage());
             }
 
             response.setStatus(HttpServletResponse.SC_OK);

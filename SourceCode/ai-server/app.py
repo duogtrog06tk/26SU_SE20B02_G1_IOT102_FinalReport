@@ -234,6 +234,8 @@ def control_device():
         parts = esp_res.content.split(b"--" + boundary.encode())
         
         b64_images = []
+        import face_recognition
+        
         for part in parts:
             if b"image/jpeg" in part:
                 header_end = part.find(b"\r\n\r\n")
@@ -247,6 +249,17 @@ def control_device():
                     np_array = np.frombuffer(img_data, np.uint8)
                     img_bgr = cv2.imdecode(np_array, cv2.IMREAD_COLOR)
                     if img_bgr is not None:
+                        # MÃ HÓA THỬ VÀ KIỂM TRA KHUÔN MẶT NGAY TRONG RAM (Không lưu file rác)
+                        img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+                        face_locations = face_recognition.face_locations(img_rgb)
+                        if len(face_locations) == 0:
+                            # Không thấy khuôn mặt, từ chối luôn (TH2)
+                            return jsonify({
+                                "success": False,
+                                "status": "error",
+                                "message": "Không nhận diện được khuôn mặt! Yêu cầu nhấn chụp ngay lại."
+                            }), 400
+                            
                         # Nén kích thước vừa phải để truyền tức thì qua JSON
                         h, w = img_bgr.shape[:2]
                         if w > 480:
@@ -258,11 +271,12 @@ def control_device():
 
         if len(b64_images) < 3:
             return jsonify({
+                "success": False,
                 "status": "error", 
                 "message": f"ESP32-CAM không chụp đủ 3 ảnh (chỉ nhận được {len(b64_images)} ảnh hợp lệ)"
             }), 400
 
-        logger.info(f"Đã nhận 3 ảnh từ ESP32-CAM cho {student_id}, gửi về WebApp xem trước.")
+        logger.info(f"Đã nhận và kiểm duyệt 3 ảnh hợp lệ từ ESP32-CAM cho {student_id}, gửi về WebApp xem trước.")
         return jsonify({
             "success": True,
             "status": "ok",
@@ -337,6 +351,9 @@ def verify_and_register():
         if os.path.exists(student_dir):
             shutil.rmtree(student_dir)
         os.makedirs(student_dir, exist_ok=True)
+
+        # Xoa encodings cu trong RAM truoc khi cap nhat
+        face_service.remove_face_encodings(student_id)
 
         for idx, img_bgr in enumerate(images_bgr):
             photo_path = os.path.join(student_dir, f"{idx+1}.jpg")
