@@ -6,29 +6,29 @@ Hệ thống điểm danh tự động KidCheck gồm 3 thành phần chính ho�
 
 ### Bước 1: Khởi chạy Python AI Server (Cổng 5000)
 AI Server đóng vai trò Gateway xử lý nhận diện khuôn mặt và điều phối lệnh chụp ảnh.
+
+**🔥 Cách nhanh nhất (Dành cho Windows):**
+Chỉ cần nhấp đúp chuột vào tệp **`run_ai_server.bat`** nằm trong thư mục `SourceCode/ai-server/`. Hệ thống sẽ tự động bật môi trường ảo và khởi chạy máy chủ!
+
+**Cách chạy thủ công (nếu không dùng file .bat):**
 1. Mở Terminal / CMD / PowerShell, di chuyển vào thư mục dự án AI Server:
    ```bash
-   cd kidcheck-system/ai-server
+   cd SourceCode/ai-server
    ```
-2. Tạo và kích hoạt môi trường ảo Python (venv):
-   - **Tạo venv (chỉ làm lần đầu):**
-     ```bash
-     python -m venv venv
+2. Kích hoạt môi trường ảo Python (venv) (Hoặc tự tạo bằng lệnh `python -m venv venv` nếu chưa có):
+   * Trên Windows (Command Prompt):
+     ```cmd
+     venv\Scripts\activate
      ```
-   - **Kích hoạt venv:**
-     * Trên Windows (Command Prompt):
-       ```cmd
-       venv\Scripts\activate
-       ```
-     * Trên Windows (PowerShell):
-       ```powershell
-       .\venv\Scripts\Activate.ps1
-       ```
-     * Trên Linux / macOS:
-       ```bash
-       source venv/bin/activate
-       ```
-3. Cài đặt các thư viện cần thiết (chỉ làm lần đầu sau khi kích hoạt venv):
+   * Trên Windows (PowerShell):
+     ```powershell
+     .\venv\Scripts\Activate.ps1
+     ```
+   * Trên Linux / macOS:
+     ```bash
+     source venv/bin/activate
+     ```
+3. Cài đặt các thư viện (chỉ làm lần đầu):
    ```bash
    pip install -r requirements.txt
    ```
@@ -40,7 +40,7 @@ AI Server đóng vai trò Gateway xử lý nhận diện khuôn mặt và điề
 
 ### Bước 2: Khởi chạy Java Web App (Cổng 8080)
 Web App cung cấp bảng điều khiển (Dashboard) quản lý lớp học, học sinh, điểm danh và điều khiển camera.
-1. Mở dự án Java trong thư mục `kidcheck-system/web/` bằng IDE (IntelliJ IDEA, Eclipse, NetBeans) hoặc Visual Studio Code.
+1. Mở dự án Java trong thư mục `SourceCode/web/` bằng IDE (IntelliJ IDEA, Eclipse, NetBeans) hoặc Visual Studio Code.
 2. Build dự án và chạy ứng dụng trên máy chủ local Tomcat hoặc qua lệnh Maven:
    ```bash
    mvn clean spring-boot:run
