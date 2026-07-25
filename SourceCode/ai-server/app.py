@@ -115,8 +115,7 @@ def recognize():
             "status": "known", "success": True,
             "student_id": student_id, "name": name_ok,
             "attendance_status": record["status"],
-            "timestamp": record["timestamp"],
-            "captured_photo": captured_b64
+            "timestamp": record["timestamp"]
         }), 200
 
     except Exception as e:
@@ -222,7 +221,7 @@ def control_device():
         esp_url = f"http://{esp_ip}/capture-reg?student_id={student_id}"
         
         try:
-            esp_res = py_requests.get(esp_url, timeout=20)
+            esp_res = py_requests.get(esp_url, timeout=(3, 10))
         except Exception as e:
             return jsonify({"status": "error", "message": f"Không thể kết nối đến ESP32-CAM tại IP {esp_ip}: {e}"}), 400
             

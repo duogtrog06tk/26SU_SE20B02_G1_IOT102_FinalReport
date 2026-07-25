@@ -36,3 +36,6 @@ serviceAccountKey.json
 .nb-gradle/
 nbproject/private/
 build/
+
+# Python Model Weights (Tự động tải khi khởi chạy, không cần push)
+*.pt

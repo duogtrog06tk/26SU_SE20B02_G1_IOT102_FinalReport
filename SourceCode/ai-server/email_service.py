@@ -34,7 +34,7 @@ def _send_attendance_email(parent_email, student_name, time_str, base64_image, i
                 if line and not line.startswith('#') and '=' in line:
                     key, val = line.split('=', 1)
                     key = key.strip()
-                    val = val.strip()
+                    val = val.strip().strip(' "\'')
                     if key == 'SMTP_EMAIL': SMTP_EMAIL = val
                     if key == 'SMTP_PASSWORD': SMTP_PASSWORD = val
 

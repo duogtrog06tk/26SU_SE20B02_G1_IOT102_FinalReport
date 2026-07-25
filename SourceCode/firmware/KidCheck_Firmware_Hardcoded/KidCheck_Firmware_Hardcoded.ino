@@ -9,7 +9,6 @@
 #include <LiquidCrystal_I2C.h>
 #include <ArduinoJson.h>
 #include <WebServer.h>
-#include <DNSServer.h>
 
 // --- KHAI BÁO NGUYÊN MẪU HÀM (FUNCTION PROTOTYPES) ---
 void initCamera();
@@ -20,10 +19,6 @@ void sendBootStatus(bool update_lcd = true);
 void handleCaptureRegister();
 void handleLEDControl();
 void handleReboot();
-void updateApConfigFromFirebase();
-void handleWifiPortal();
-void handleSaveWifi();
-bool isCaptivePortal();
 void captureAndRecognize();
 void handleStream();
 
@@ -35,8 +30,8 @@ String ai_server_base_url = "";
 
 // Biến cờ bảo vệ tài nguyên phần cứng camera tránh xung đột giữa Live Stream & Nhận diện PIR
 volatile bool is_recognizing = false;
-String ap_ssid = "KidCheck-Setup-Wifi";
-String ap_password = "admin123";  // Mật khẩu mặc định ban đầu (tối thiểu 8 ký tự)
+const char* wifi_ssid = "duongtrong";
+const char* wifi_password = "12345678";
 
 // --- ĐỊNH NGHĨA SƠ ĐỒ CHÂN PHẦN CỨNG (HARDWARE MAP) ---
 #define PIR_PIN 12     // Chân OUT của cảm biến chuyển động PIR AM312
@@ -47,8 +42,6 @@ String ap_password = "admin123";  // Mật khẩu mặc định ban đầu (tố
 
 // Khởi tạo các đối tượng điều khiển ngoại vi
 LiquidCrystal_I2C lcd(0x27, 16, 2);
-const byte DNS_PORT = 53;  // Cổng mạng phục vụ phân giải tên miền Captive Portal
-DNSServer dnsServer;
 WebServer server(80);  // Web Server nội bộ ở cổng 80 đón lệnh điều khiển từ AI Gateway
 
 // --- CẤU HÌNH CHÂN CAMERA (ESP32-CAM AI-THINKER) ---
@@ -241,6 +234,9 @@ void handleCaptureRegister() {
     delay(3000);
 
     camera_fb_t* fb = esp_camera_fb_get();
+    if (fb) esp_camera_fb_return(fb); // Xả ảnh cũ trong buffer
+    fb = esp_camera_fb_get(); // Lấy ảnh mới hiện tại
+    
     if (!fb) {
       digitalWrite(LED_PIN, LOW);
       Serial.println("[CAM] Chup anh that bai o tam: " + String(i));
@@ -293,177 +289,7 @@ void handleReboot() {
   ESP.restart();
 }
 
-void updateApConfigFromFirebase() {
-  if (WiFi.status() == WL_CONNECTED) {
-    WiFiClientSecure client;
-    client.setInsecure();
-    HTTPClient http;
-    String url = "https://" + String(firebase_host) + "/System/Device_Config.json";
-    http.begin(client, url);
-
-    int httpResponseCode = http.GET();
-    if (httpResponseCode > 0) {
-      String response = http.getString();
-      StaticJsonDocument<200> doc;
-      deserializeJson(doc, response);
-
-      if (doc.containsKey("ap_password")) {
-        String new_pass = doc["ap_password"].as<String>();
-        if (new_pass != ap_password && new_pass.length() >= 8) {
-          ap_password = new_pass;
-          Serial.println("[AP] Cap nhat mat khau softAP moi: " + ap_password);
-          WiFi.softAP(ap_ssid.c_str(), ap_password.c_str());
-        }
-      }
-    }
-    http.end();
-  }
-}
-
-void handleWifiPortal() {
-  if (isCaptivePortal()) return;
-
-  int n = WiFi.scanNetworks();
-  String wifiOptions = "";
-  for (int i = 0; i < n; ++i) {
-    String ssid = WiFi.SSID(i);
-    int rssi = WiFi.RSSI(i);
-    String encType = (WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? "Mở" : "Bảo mật";
-    if (ssid.length() > 0 && wifiOptions.indexOf("value='" + ssid + "'") == -1) {
-      wifiOptions += "<option value='" + ssid + "'>" + ssid + " (" + String(rssi) + " dBm, " + encType + ")</option>";
-    }
-  }
-  WiFi.scanDelete();
-
-  String html = "<!DOCTYPE html><html lang='vi'><head><meta charset='UTF-8'>";
-  html += "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
-  html += "<title>KidCheck IoT - Cấu Hình</title>";
-  html += "<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'>";
-  html += "<style>";
-  html += "@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');";
-  html += "* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }";
-  html += "body { background: linear-gradient(135deg, #6C5CE7 0%, #8E2DE2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }";
-  html += ".container { background: #FFFFFF; width: 100%; max-width: 420px; padding: 40px 30px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25); text-align: center; border: 3px solid rgba(255, 255, 255, 0.1); }";
-  html += ".logo { font-size: 32px; font-weight: 900; color: #2D3748; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; display: inline-flex; align-items: center; gap: 8px; }";
-  html += ".logo i { color: #FF6B81; }";
-  html += ".logo span { color: #FF6B81; }";
-  html += ".subtitle { color: #718096; font-size: 15px; margin-bottom: 30px; line-height: 1.6; }";
-  html += ".subtitle strong { color: #6C5CE7; display: block; font-size: 12px; margin-top: 5px; text-transform: uppercase; letter-spacing: 1px; }";
-  html += ".input-group { margin-bottom: 22px; text-align: left; }";
-  html += "label { display: block; font-size: 14px; font-weight: 700; color: #2D3748; margin-bottom: 8px; }";
-  html += ".input-wrapper { position: relative; }";
-  html += ".input-wrapper i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #A0AEC0; font-size: 16px; z-index: 10; }";
-  html += "input, select { width: 100%; padding: 14px 16px 14px 46px; border: 2px solid #E8EEF5; border-radius: 16px; font-size: 15px; font-weight: 600; transition: all 0.3s ease; color: #2D3748; background: #F8FAFC; -webkit-appearance: none; -moz-appearance: none; appearance: none; }";
-  html += "input:focus, select:focus { outline: none; border-color: #FF6B81; box-shadow: 0 0 0 4px rgba(255, 107, 129, 0.15); background: #FFFFFF; }";
-  html += "button { width: 100%; padding: 16px; background: linear-gradient(90deg, #FF6B81 0%, #E04D62 100%); color: white; border: none; border-radius: 16px; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 20px rgba(255, 107, 129, 0.3); transition: all 0.3s ease; margin-top: 15px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }";
-  html += "button:hover { transform: translateY(-2px); box-shadow: 0 12px 25px rgba(255, 107, 129, 0.45); }";
-  html += "button:active { transform: translateY(1px); }";
-  html += "</style></head>";
-  html += "<body><div class='container'>";
-  html += "<div class='logo'><i class='fa-solid fa-camera-retro'></i>Kid<span>Check</span></div>";
-  html += "<div class='subtitle'>Hệ thống điểm danh tự động IoT mầm non<strong>[ Cấu hình thiết lập WiFi ban đầu ]</strong></div>";
-  html += "<form action='/save-wifi' method='POST'>";
-  html += "<div class='input-group'><label>Chọn mạng WiFi (SSID)</label><div class='input-wrapper'><i class='fa-solid fa-wifi'></i><select name='ssid' id='ssid_select' onchange='checkCustomWifi(this)' required><option value='' disabled selected>-- Chọn WiFi của bạn --</option>" + wifiOptions + "<option value='custom'>-- Nhập WiFi khác (Mạng ẩn) --</option></select></div></div>";
-  html += "<div id='custom-wifi-wrapper' style='display:none;' class='input-group'><label>Nhập tên WiFi thủ công</label><div class='input-wrapper'><i class='fa-solid fa-keyboard'></i><input type='text' id='ssid_custom' placeholder='Nhập chính xác tên WiFi ẩn'></div></div>";
-  html += "<div class='input-group'><label>Mật khẩu WiFi</label><div class='input-wrapper'><i class='fa-solid fa-key'></i><input type='password' name='pass' placeholder='Nhập mật khẩu WiFi'></div></div>";
-  html += "<button type='submit'><i class='fa-solid fa-paper-plane'></i> KẾT NỐI & ĐỒNG BỘ THIẾT BỊ</button>";
-  html += "</form></div>";
-  html += "<script>";
-  html += "function checkCustomWifi(select) {";
-  html += "  var wrapper = document.getElementById('custom-wifi-wrapper');";
-  html += "  var customInput = document.getElementById('ssid_custom');";
-  html += "  if (select.value === 'custom') {";
-  html += "    wrapper.style.display = 'block';";
-  html += "    customInput.setAttribute('name', 'ssid');";
-  html += "    customInput.setAttribute('required', 'true');";
-  html += "    select.removeAttribute('name');";
-  html += "  } else {";
-  html += "    wrapper.style.display = 'none';";
-  html += "    customInput.removeAttribute('name');";
-  html += "    customInput.removeAttribute('required');";
-  html += "    select.setAttribute('name', 'ssid');";
-  html += "  }";
-  html += "}";
-  html += "</script></body></html>";
-
-  server.send(200, "text/html", html);
-}
-
-void handleSaveWifi() {
-  if (server.hasArg("ssid") && server.hasArg("pass")) {
-    String req_ssid = server.arg("ssid");
-    String req_pass = server.arg("pass");
-
-    String msg = "<!DOCTYPE html><html lang='vi'><head><meta charset='UTF-8'>";
-    msg += "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
-    msg += "<title>Cấu Hình Thành Công</title>";
-    msg += "<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'>";
-    msg += "<style>";
-    msg += "@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');";
-    msg += "* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }";
-    msg += "body { background: linear-gradient(135deg, #6C5CE7 0%, #8E2DE2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }";
-    msg += ".card { background: #FFFFFF; width: 100%; max-width: 400px; padding: 45px 35px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25); text-align: center; }";
-    msg += ".icon { width: 80px; height: 80px; background: #EBFDF5; color: #2EC4B6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 25px auto; box-shadow: 0 8px 20px rgba(46, 196, 182, 0.2); }";
-    msg += "h2 { color: #2D3748; font-size: 24px; font-weight: 900; margin-bottom: 15px; }";
-    msg += "p { color: #718096; font-size: 15px; line-height: 1.6; margin-bottom: 30px; }";
-    msg += "p strong { color: #FF6B81; }";
-    msg += ".loader { border: 4px solid #F3F3F3; border-top: 4px solid #6C5CE7; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; margin: 0 auto; }";
-    msg += "@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }";
-    msg += "</style></head>";
-    msg += "<body><div class='card'>";
-    msg += "<div class='icon'><i class='fa-solid fa-circle-check'></i></div>";
-    msg += "<h2>Đã Nhận Cấu Hình!</h2>";
-    msg += "<p>Mạch KidCheck đang cố gắng kết nối vào mạng WiFi mới.<br><strong>Vui lòng kiểm tra màn hình LCD trên thiết bị!</strong></p>";
-    msg += "<div class='loader'></div>";
-    msg += "</div></body></html>";
-
-    server.send(200, "text/html", msg);
-    delay(2000);
-
-    showMessage("WiFi Connect...", req_ssid.c_str());
-    WiFi.begin(req_ssid.c_str(), req_pass.c_str());
-
-    int counter = 0;
-    while (WiFi.status() != WL_CONNECTED && counter < 20) {
-      delay(500);
-      counter++;
-    }
-
-    if (WiFi.status() == WL_CONNECTED) {
-      showMessage("WiFi Connected!", WiFi.localIP().toString().c_str());
-      delay(2000);
-
-      showMessage("Firebase Fetch", "Load Server IP");
-      int retry = 0;
-      while (!getAiServerIP() && retry < 5) {
-        delay(1000);
-        retry++;
-      }
-
-      if (ai_server_base_url != "") {
-        showMessage("Syncing Server", "Updating Device IP");
-        sendBootStatus();
-        delay(1000);
-      }
-    } else {
-      showMessage("Connection Fail", "Try again");
-      delay(2000);
-      showMessage("KidCheck System", "AP Ready...");
-    }
-  } else {
-    server.send(400, "text/plain", "Bad Request: Missing SSID or Password");
-  }
-}
-
-bool isCaptivePortal() {
-  if (!server.hostHeader().equalsIgnoreCase(WiFi.softAPIP().toString())) {
-    Serial.println("[DNS] Captive Portal redirected...");
-    server.sendHeader("Location", String("http://") + WiFi.softAPIP().toString() + "/", true);
-    server.send(302, "text/html", "<!DOCTYPE html><html><head><meta http-equiv='refresh' content='0;url=http://192.168.4.1/'><script>location.href='http://192.168.4.1/';</script></head><body>Redirecting to Captive Portal...</body></html>");
-    return true;
-  }
-  return false;
-}
+// Các hàm liên quan đến AP và Captive Portal đã được xóa để nạp cứng WiFi
 
 // ============================================================================
 // KHỐI 4: VÒNG LẶP ĐIỂM DANH TỰ ĐỘNG (PIR CHÂN IO12 KÍCH HOẠT TRONG 5 GIÂY)
@@ -509,7 +335,7 @@ void captureAndRecognize() {
 
             if (httpResponseCode > 0) {
                 String response = http.getString();
-                StaticJsonDocument<250> doc;
+                StaticJsonDocument<512> doc;
                 DeserializationError error = deserializeJson(doc, response);
 
                 if (!error) {
@@ -585,62 +411,46 @@ void setup() {
     showMessage("KidCheck IoT", "Booting system...");
     delay(1000);
 
-    // Cấu hình chế độ mạng song song (WIFI_AP_STA)
-    WiFi.mode(WIFI_AP_STA);
-    IPAddress apIP(192, 168, 4, 1);
-    WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
-    WiFi.softAP(ap_ssid.c_str(), ap_password.c_str());
-    Serial.println("[AP] Mang phat song: " + ap_ssid + " | Mk: " + ap_password);
-    Serial.print("[AP] Dia chi IP AP: ");
-    Serial.println(WiFi.softAPIP());
+    // Cấu hình mạng Station (WIFI_STA) hardcode
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+    delay(100);
 
-    Serial.println("[WiFi] Dang thu ket noi lai WiFi da luu...");
-    WiFi.begin();
+    Serial.println("[WiFi] Dang ket noi WiFi: " + String(wifi_ssid));
+    showMessage("WiFi Connect...", wifi_ssid);
+    WiFi.begin(wifi_ssid, wifi_password);
 
     int wifiRetry = 0;
-    while (WiFi.status() != WL_CONNECTED && wifiRetry < 16) {
+    while (WiFi.status() != WL_CONNECTED) {
         delay(500);
         wifiRetry++;
         Serial.print(".");
+        // Reset mạch nếu không kết nối được sau 1 phút (120 * 500ms = 60s)
+        if (wifiRetry > 120) {
+            Serial.println("\n[WiFi] Khong the ket noi WiFi. Khoi dong lai mach...");
+            ESP.restart();
+        }
     }
     Serial.println();
 
-    if (WiFi.status() == WL_CONNECTED) {
-        showMessage("WiFi OK!", WiFi.localIP().toString().c_str());
-        Serial.println("[WiFi] Ket noi thanh cong: " + WiFi.localIP().toString());
-        delay(1500);
-        int retry = 0;
-        while (!getAiServerIP() && retry < 5) { delay(1000); retry++; }
-        if (ai_server_base_url != "") {
-            sendBootStatus(true);
-        }
-    } else {
-        Serial.println("[WiFi] Khong tim thay WiFi. Dang cho cau hinh AP Portal.");
-        showMessage("Setup AP Portal", "SSID:KidCheck-AP");
+    showMessage("WiFi OK!", WiFi.localIP().toString().c_str());
+    Serial.println("[WiFi] Ket noi thanh cong: " + WiFi.localIP().toString());
+    delay(1500);
+    
+    int retry = 0;
+    while (!getAiServerIP() && retry < 5) { delay(1000); retry++; }
+    if (ai_server_base_url != "") {
+        sendBootStatus(true);
     }
 
-    // Khởi động DNS Server cổng 53 phục vụ chuyển hướng Captive Portal
-    dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
-
     // Đăng ký cổng Web Server nội bộ
-    server.on("/", HTTP_GET, handleWifiPortal);
-    server.on("/save-wifi", HTTP_POST, handleSaveWifi);
     server.on("/capture-reg", HTTP_GET, handleCaptureRegister);
     server.on("/led", HTTP_GET, handleLEDControl);
     server.on("/reboot", HTTP_GET, handleReboot);
     server.on("/stream", HTTP_GET, handleStream);
     
-    // Bẫy chuyển hướng Captive Portal tự động cho Windows/Android/iOS
-    server.on("/generate_204", HTTP_GET, handleWifiPortal);
-    server.on("/connecttest.txt", HTTP_GET, handleWifiPortal);
-    server.on("/redirect", HTTP_GET, handleWifiPortal);
-    server.on("/hotspot-detect.html", HTTP_GET, handleWifiPortal);
-    server.on("/canonical.html", HTTP_GET, handleWifiPortal);
-    
     server.onNotFound([]() {
-        if (!isCaptivePortal()) {
-            handleWifiPortal();
-        }
+        server.send(404, "text/plain", "API Not Found");
     });
 
     server.begin();
@@ -650,7 +460,6 @@ void setup() {
 }
 
 void loop() {
-    dnsServer.processNextRequest();
     server.handleClient();
 
     // Heartbeat định kỳ 30 giây gửi trạng thái ngầm (KHÔNG báo còi, KHÔNG đổi LCD)
@@ -666,7 +475,6 @@ void loop() {
     if (digitalRead(PIR_PIN) == HIGH) {
         captureAndRecognize();
         while (digitalRead(PIR_PIN) == HIGH) {
-            dnsServer.processNextRequest();
             server.handleClient();
             delay(200);
         }

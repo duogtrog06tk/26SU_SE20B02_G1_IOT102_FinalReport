@@ -9,10 +9,13 @@ import os
 # Ngưỡng độ tin cậy để coi là "nhận ra đúng người"
 # face_recognition trả về "khoảng cách" (distance), càng nhỏ càng giống.
 # 0.6 là ngưỡng mặc định khuyến nghị bởi thư viện dlib.
-FACE_MATCH_THRESHOLD = 0.6
+FACE_MATCH_THRESHOLD = 0.45
 
 # Giờ quy định điểm danh — sau giờ này tính là đi trễ
 CHECK_IN_DEADLINE = "08:00:00"
+
+# Giờ quy định đón trẻ — sau giờ này tính là lượt về (Checkout)
+PICKUP_START_TIME = "16:00:00"
 
 # Thời gian cooldown (giây) — tránh ghi điểm danh trùng liên tục
 # cho cùng 1 học sinh trong khoảng thời gian ngắn

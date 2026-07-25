@@ -1,29 +1,30 @@
 @echo off
-title KidCheck AI Server Launcher
-color 0A
+title KidCheck AI Server
 echo ===================================================
-echo           KIDCHECK AI SERVER LAUNCHER
+echo =       KidCheck AI Server Auto-Runner            =
 echo ===================================================
 echo.
-echo [1/2] Changing directory to AI Server folder...
+
 cd /d "%~dp0"
 
-echo [2/2] Starting AI Server...
-echo.
-
-if exist "venv\Scripts\activate.bat" (
-    call "venv\Scripts\activate.bat"
+IF NOT EXIST "venv\Scripts\activate.bat" (
+    echo [INFO] Dang tao moi truong ao Python ^(venv^)...
+    python -m venv venv
+    IF %ERRORLEVEL% NEQ 0 (
+        echo [ERROR] Khong the tao venv. Vui long kiem tra lai Python da duoc cai dat hay chua.
+        pause
+        exit /b %ERRORLEVEL%
+    )
 )
 
+echo [INFO] Kich hoat moi truong ao...
+call venv\Scripts\activate.bat
+
+echo [INFO] Dang kiem tra va cai dat thu vien (neu thieu)...
+pip install -r requirements.txt
+
+echo.
+echo [INFO] Dang khoi dong AI Server...
 python app.py
 
-if errorlevel 1 (
-    echo.
-    color 0C
-    echo [ERROR] AI Server closed with an error!
-) else (
-    echo.
-    echo [INFO] AI Server stopped.
-)
-echo.
 pause

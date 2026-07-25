@@ -16,6 +16,8 @@ import cv2
 import face_recognition
 import numpy as np
 from config import KNOWN_FACES_DIR, FACE_MATCH_THRESHOLD
+from ultralytics import YOLO
+from huggingface_hub import hf_hub_download
 
 logger = logging.getLogger("face_service")
 
@@ -27,7 +29,47 @@ class FaceService:
         # Hai list này luôn đi cùng nhau theo index — encoding[i] thuộc về name[i]
         self.known_encodings = []
         self.known_names = []
+        
+        # Load YOLOv8 face model
+        try:
+            model_path = os.path.join(os.path.dirname(__file__), "yolov8n-face.pt")
+            if not os.path.exists(model_path):
+                logger.info("Đang tải model YOLOv8-Face từ HuggingFace (lần đầu tiên)...")
+                downloaded_path = hf_hub_download(repo_id="arnabdhar/YOLOv8-Face-Detection", filename="model.pt")
+                import shutil
+                shutil.copy(downloaded_path, model_path)
+                logger.info("Tải model thành công!")
+            self.yolo_model = YOLO(model_path)
+            logger.info("Khởi tạo YOLOv8-Face model thành công.")
+        except Exception as e:
+            logger.error(f"Lỗi khi khởi tạo YOLO model: {e}")
+            self.yolo_model = None
+            
         self.load_known_faces()
+
+    def _get_face_locations_yolo(self, image_array):
+        """
+        Dùng YOLO để tìm khuôn mặt, chuyển box (x1,y1,x2,y2) sang format của face_recognition (top, right, bottom, left)
+        """
+        if self.yolo_model is None:
+            logger.warning("YOLO model không khả dụng, dùng lại thuật toán gốc của face_recognition")
+            return face_recognition.face_locations(image_array)
+
+        # Predict with YOLO
+        results = self.yolo_model.predict(image_array, verbose=False, conf=0.5)
+        
+        locations = []
+        for result in results:
+            boxes = result.boxes
+            for box in boxes:
+                x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+                top = int(y1)
+                right = int(x2)
+                bottom = int(y2)
+                left = int(x1)
+                locations.append((top, right, bottom, left))
+                
+        return locations
 
     def load_known_faces(self):
         """
@@ -66,8 +108,9 @@ class FaceService:
                 image_path = os.path.join(student_path, filename)
                 try:
                     image = face_recognition.load_image_file(image_path)
+                    locations = self._get_face_locations_yolo(image)
                     # Một ảnh có thể chứa nhiều khuôn mặt — lấy khuôn mặt đầu tiên tìm được
-                    encodings = face_recognition.face_encodings(image)
+                    encodings = face_recognition.face_encodings(image, known_face_locations=locations)
 
                     if len(encodings) == 0:
                         logger.warning(f"Không tìm thấy khuôn mặt nào trong ảnh {image_path} — bỏ qua")
@@ -100,7 +143,7 @@ class FaceService:
         Nếu lỗi: nếu ảnh gửi lên không có khuôn mặt nào (học sinh đứng lệch góc,
         ảnh mờ...), trả về recognized=False, không raise exception để API không bị crash.
         """
-        face_locations = face_recognition.face_locations(image_array)
+        face_locations = self._get_face_locations_yolo(image_array)
 
         if len(face_locations) == 0:
             logger.info("Không phát hiện khuôn mặt nào trong ảnh gửi lên")
@@ -149,7 +192,7 @@ class FaceService:
         # 1. Xóa các encodings cũ của học sinh này (nếu có) để tránh nhận diện sai khi cập nhật ảnh mới
         self.remove_face_encodings(student_id)
 
-        face_locations = face_recognition.face_locations(image_array)
+        face_locations = self._get_face_locations_yolo(image_array)
 
         if len(face_locations) == 0:
             logger.warning(f"Ảnh đăng ký cho {student_id} không có khuôn mặt rõ — không lưu")

@@ -14,7 +14,7 @@ import email_service
 from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, db
-from config import FIREBASE_CREDENTIALS_PATH, FIREBASE_DATABASE_URL, CHECK_IN_DEADLINE, COOLDOWN_SECONDS
+from config import FIREBASE_CREDENTIALS_PATH, FIREBASE_DATABASE_URL, CHECK_IN_DEADLINE, PICKUP_START_TIME, COOLDOWN_SECONDS
 
 logger = logging.getLogger("firebase_service")
 
@@ -247,6 +247,11 @@ class FirebaseService:
                         if folder not in students and folder not in valid_firebase_ids:
                             logger.info(f"Học sinh {folder} đã bị xóa trên Firebase. Đang xóa thư mục cục bộ...")
                             try:
+                                try:
+                                    from app import face_service
+                                    face_service.remove_face_encodings(folder)
+                                except Exception as inner_e:
+                                    logger.error(f"Lỗi xóa RAM encodings: {inner_e}")
                                 shutil.rmtree(folder_path)
                             except Exception as delete_err:
                                 logger.error(f"Lỗi xóa thư mục cục bộ của {folder}: {delete_err}")
@@ -269,7 +274,14 @@ class FirebaseService:
         today_str = now.strftime("%Y-%m-%d")
         time_str = now.strftime("%H:%M:%S")
 
-        status = "late" if time_str > CHECK_IN_DEADLINE else "present"
+        is_pickup = False
+        if time_str > PICKUP_START_TIME:
+            status = "present"
+            is_pickup = True
+            node_suffix = "_out"
+        else:
+            status = "late" if time_str > CHECK_IN_DEADLINE else "present"
+            node_suffix = "_in"
 
         # Tra cứu tên thật của học sinh từ Firebase Database
         student_name = student_id
@@ -285,7 +297,7 @@ class FirebaseService:
                     parent_email = student_data.get("parentEmail")
                 
                 # Fetch existing attendance for today
-                r_att = requests.get(f"{self.database_url}attendance/{today_str}/{student_id}_in.json", timeout=3)
+                r_att = requests.get(f"{self.database_url}attendance/{today_str}/{student_id}{node_suffix}.json", timeout=3)
                 if r_att.status_code == 200 and r_att.json():
                     existing_log = r_att.json()
             else:
@@ -295,7 +307,7 @@ class FirebaseService:
                     parent_email = st_data.get("parentEmail")
                 
                 # Fetch existing attendance for today
-                existing_log = db.reference(f"attendance/{today_str}/{student_id}_in").get()
+                existing_log = db.reference(f"attendance/{today_str}/{student_id}{node_suffix}").get()
         except Exception as e:
             logger.warning(f"Không thể lấy thông tin cho {student_id}: {e}")
 
@@ -314,7 +326,7 @@ class FirebaseService:
             "image_url": image_url or ""
         }
 
-        display_status = "Có mặt" if status == "present" else "Đi trễ"
+        display_status = "Đón về" if is_pickup else ("Có mặt" if status == "present" else "Đi trễ")
         latest_record = {
             "id": student_id,
             "name": student_name,
@@ -326,7 +338,7 @@ class FirebaseService:
         if self.use_rest_fallback:
             try:
                 import requests
-                req_url = f"{self.database_url}attendance/{today_str}/{student_id}_in.json"
+                req_url = f"{self.database_url}attendance/{today_str}/{student_id}{node_suffix}.json"
                 r = requests.put(req_url, json=record, timeout=5)
                 
                 # Cập nhật thêm trạng thái vào bảng students để WebApp hiển thị lên Dashboard
@@ -351,7 +363,7 @@ class FirebaseService:
                             time_str=time_str,
                             base64_image=image_url,
                             is_late=(status == "late"),
-                            is_pickup=False
+                            is_pickup=is_pickup
                         )
                 else:
                     logger.error(f"REST Fallback Error {r.status_code}: {r.text}")
@@ -359,7 +371,7 @@ class FirebaseService:
                 logger.error(f"Lỗi khi REST ghi điểm danh: {e}")
         else:
             try:
-                ref = db.reference(f"attendance/{today_str}/{student_id}_in")
+                ref = db.reference(f"attendance/{today_str}/{student_id}{node_suffix}")
                 ref.set(record)
                 
                 # Cập nhật thêm trạng thái vào bảng students
@@ -382,7 +394,7 @@ class FirebaseService:
                         time_str=time_str,
                         base64_image=image_url,
                         is_late=(status == "late"),
-                        is_pickup=False
+                        is_pickup=is_pickup
                     )
 
             except Exception as e:
