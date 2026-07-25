@@ -312,7 +312,7 @@
                                 <tr>
                                     <th data-i18n="th-time">Thời gian</th>
                                     <th data-i18n="th-child">Bé yêu</th>
-                                    <th data-i18n="th-class">Lớp</th>
+                                    <th style="min-width: 95px; white-space: nowrap;" data-i18n="th-class">Lớp</th>
                                     <th data-i18n="th-parent">Thông tin Phụ huynh</th>
                                     <th data-i18n="th-status">Trạng thái</th>
                                 </tr>
@@ -3046,7 +3046,11 @@
                 const select = document.getElementById('dash-class-select');
                 const selectedClass = select ? select.value : 'all';
                 if (selectedClass !== 'all') {
-                    filteredStudents = students.filter(s => s.className === selectedClass);
+                    const targetCls = String(selectedClass).trim().toLowerCase();
+                    filteredStudents = students.filter(s => {
+                        const sCls = String(s.className || s.class_name || "").trim().toLowerCase();
+                        return sCls !== "" && sCls === targetCls;
+                    });
                 }
             }
 
@@ -3080,7 +3084,12 @@
                 const select = document.getElementById('dash-class-select');
                 const selectedClass = select ? select.value : 'all';
                 if (selectedClass !== 'all') {
-                    filteredLogs = logs.filter(l => l.className === selectedClass);
+                    const targetCls = String(selectedClass).trim().toLowerCase();
+                    filteredLogs = logs.filter(l => {
+                        const studInLog = findStudentByLog(l);
+                        const lCls = String(l.className || (studInLog ? studInLog.className : "")).trim().toLowerCase();
+                        return lCls !== "" && lCls === targetCls;
+                    });
                 }
             }
 
@@ -3098,16 +3107,29 @@
                         badgeClass = 'status-pickup';
                     }
 
-                    const stud = students.find(s => s.id === log.id);
-                    const parentInfo = stud ? `<strong>${stud.parentName}</strong><br><span style="font-size:0.8rem;color:var(--text-light);">${stud.parentPhone}</span>` : 'N/A';
+                    const stud = findStudentByLog(log);
+                    let pName = stud ? (stud.parentName || stud.parent_name) : (log.parentName || log.parent_name);
+                    let pPhone = stud ? (stud.parentPhone || stud.parent_phone) : (log.parentPhone || log.parent_phone);
+
+                    if (!pName || pName === 'N/A' || pName === 'Chưa cập nhật') {
+                        pName = (log.parentName && log.parentName !== 'N/A') ? log.parentName : 'N/A';
+                    }
+                    if (!pPhone || pPhone === 'N/A' || pPhone === 'Chưa cập nhật') {
+                        pPhone = (log.parentPhone && log.parentPhone !== 'N/A') ? log.parentPhone : (stud ? stud.parentPhone : '');
+                    }
+
+                    const parentInfo = (pName && pName !== 'N/A' && pName !== 'Chưa cập nhật')
+                        ? `<strong>${pName}</strong><br><span style="font-size:0.8rem;color:var(--text-light);">${pPhone || ''}</span>`
+                        : (pPhone ? `<span style="font-size:0.8rem;color:var(--text-light);">${pPhone}</span>` : 'N/A');
 
                     const displayTime = log.time && log.time.includes(' ') ? log.time.split(' ')[1] : (log.time || '--:--');
+                    const studentIdDisplay = String(log.id || log.studentId || log.student_id || (stud ? stud.id : "")).trim();
 
                     tbody.innerHTML += `
                         <tr class="${badgeClass}">
                             <td><strong style="color:var(--primary);">${displayTime}</strong></td>
-                            <td><strong>${log.name}</strong> (${log.id})</td>
-                            <td><span style="background:rgba(108, 92, 231, 0.1); color:#6C5CE7; padding:4px 8px; border-radius:8px; font-size:0.85rem; font-weight:700;">${log.className}</span></td>
+                            <td><strong>${log.name || (stud ? stud.name : 'Học sinh')}</strong> (${studentIdDisplay})</td>
+                            <td><span style="background:rgba(108, 92, 231, 0.1); color:#6C5CE7; padding:4px 10px; border-radius:8px; font-size:0.85rem; font-weight:700; white-space:nowrap; display:inline-block;">${log.className || (stud ? stud.className : 'Mầm 1')}</span></td>
                             <td>${parentInfo}</td>
                             <td><span class="student-status-badge">${statusLabel}</span></td>
                         </tr>
@@ -3904,16 +3926,23 @@
             tbody.innerHTML = '';
 
             let filtered = students;
+            const targetCls = String(clsFilter).trim().toLowerCase();
             if (currentUser.role === 'teacher') {
                 const assigned = teacherClassAssignments[currentUser.name] || [];
                 if (clsFilter === 'all') {
                     filtered = students.filter(s => assigned.includes(s.className));
                 } else {
-                    filtered = students.filter(s => s.className === clsFilter && assigned.includes(s.className));
+                    filtered = students.filter(s => {
+                        const sCls = String(s.className || s.class_name || "").trim().toLowerCase();
+                        return sCls !== "" && sCls === targetCls && assigned.includes(s.className);
+                    });
                 }
             } else {
                 if (clsFilter !== 'all') {
-                    filtered = students.filter(s => s.className === clsFilter);
+                    filtered = students.filter(s => {
+                        const sCls = String(s.className || s.class_name || "").trim().toLowerCase();
+                        return sCls !== "" && sCls === targetCls;
+                    });
                 }
             }
 
@@ -3923,7 +3952,13 @@
             }
 
             filtered.forEach(student => {
-                const parentInfo = `<strong>${student.parentName || 'N/A'}</strong><br><span style="font-size:0.8rem;color:var(--text-light);"><i class="fa-solid fa-phone" style="font-size:0.75rem;"></i> ${student.parentPhone || 'N/A'}</span>`;
+                let pName = student.parentName || student.parent_name || 'N/A';
+                let pPhone = student.parentPhone || student.parent_phone || '';
+                if (pName === 'Chưa cập nhật') pName = 'N/A';
+
+                const parentInfo = (pName && pName !== 'N/A')
+                    ? `<strong>${pName}</strong><br><span style="font-size:0.8rem;color:var(--text-light);"><i class="fa-solid fa-phone" style="font-size:0.75rem;"></i> ${pPhone}</span>`
+                    : (pPhone ? `<span style="font-size:0.8rem;color:var(--text-light);"><i class="fa-solid fa-phone" style="font-size:0.75rem;"></i> ${pPhone}</span>` : 'N/A');
 
                 let actionHtml = '';
                 if (currentUser.role === 'admin') {
@@ -5514,41 +5549,61 @@
             const clsFilter = document.getElementById('filter-class').value;
             const rangeFilter = document.getElementById('filter-range').value;
             const tbody = document.getElementById('report-table-tbody');
-            const chartBox1 = document.getElementById('statistics-chart-container');
-            const chartBox2 = document.getElementById('statistics-chart-container-report');
 
             tbody.innerHTML = '';
 
-            let filtered = [];
             const todayStr = new Date().toLocaleDateString('vi-VN');
 
             // Lọc logs của giáo viên
             let targetLogs = logs;
             if (currentUser.role === 'teacher') {
                 const assigned = teacherClassAssignments[currentUser.name] || [];
-                targetLogs = logs.filter(l => assigned.includes(l.className));
+                targetLogs = logs.filter(l => {
+                    const stud = findStudentByLog(l);
+                    const lCls = l.className || (stud ? stud.className : '');
+                    return assigned.includes(lCls);
+                });
             }
 
-            filtered = targetLogs.map(l => {
-                const stud = students.find(s => s.id === l.id);
+            let filtered = targetLogs.map(l => {
+                const stud = findStudentByLog(l);
                 const hasDate = l.time && l.time.includes(' ');
                 const datePart = hasDate ? l.time.split(' ')[0] : todayStr;
                 const timePart = hasDate ? l.time.split(' ')[1] : (l.time || '--:--');
+
+                let pName = stud ? (stud.parentName || stud.parent_name) : (l.parentName || l.parent_name);
+                let pPhone = stud ? (stud.parentPhone || stud.parent_phone) : (l.parentPhone || l.parent_phone);
+
+                if (!pName || pName === 'N/A' || pName === 'Chưa cập nhật' || pName === 'Chưa rõ') {
+                    pName = (l.parentName && l.parentName !== 'N/A' && l.parentName !== 'Chưa cập nhật') ? l.parentName : 'N/A';
+                }
+                if (!pPhone || pPhone === 'N/A' || pPhone === 'Chưa cập nhật' || pPhone === 'Chưa rõ') {
+                    pPhone = (l.parentPhone && l.parentPhone !== 'N/A') ? l.parentPhone : (stud ? (stud.parentPhone || '') : '');
+                }
+
+                const sId = String(l.id || l.studentId || l.student_id || (stud ? stud.id : "")).trim();
+                const sName = l.name || (stud ? stud.name : 'Học sinh');
+                const sClass = l.className || (stud ? stud.className : 'Mầm 1');
+
                 return {
                     date: datePart,
                     time: timePart,
-                    id: l.id,
-                    name: l.name,
-                    className: l.className || (stud ? stud.className : 'Mầm 1'),
+                    id: sId,
+                    name: sName,
+                    className: sClass,
                     status: l.status,
-                    parentName: stud ? stud.parentName : (l.parentName || 'N/A'),
-                    parentPhone: stud ? stud.parentPhone : (l.parentPhone || 'N/A')
+                    parentName: (pName && pName !== 'N/A' && pName !== 'Chưa cập nhật') ? pName : 'Chưa cập nhật',
+                    parentPhone: (pPhone && pPhone !== 'N/A' && pPhone !== 'Chưa cập nhật') ? pPhone : ''
                 };
             });
 
             // Lọc theo lớp học
             if (clsFilter !== 'all') {
-                filtered = filtered.filter(item => item.className === clsFilter);
+                const targetCls = String(clsFilter).trim().toLowerCase();
+                filtered = filtered.filter(item => {
+                    const iCls = String(item.className || "").trim().toLowerCase();
+                    return iCls !== "" && iCls === targetCls;
+                });
             }
 
             if (filtered.length === 0) {
@@ -5565,9 +5620,9 @@
                         badgeClass = 'status-pickup';
                     }
 
-                    const stud = students.find(s => s.id === item.id);
-                    const pName = stud ? stud.parentName : (item.parentName || 'Chưa rõ');
-                    const pPhone = stud ? stud.parentPhone : (item.parentPhone || 'Chưa rõ');
+                    const parentDisplay = (item.parentName && item.parentName !== 'Chưa cập nhật' && item.parentName !== 'N/A')
+                        ? `<strong>${item.parentName}</strong>${item.parentPhone ? ` (${item.parentPhone})` : ''}`
+                        : (item.parentPhone ? `<span>${item.parentPhone}</span>` : '<span style="color:var(--text-light);">Chưa cập nhật</span>');
 
                     tbody.innerHTML += `
                         <tr class="${badgeClass}">
@@ -5575,8 +5630,8 @@
                             <td><strong style="color:var(--primary-dark);">${item.time}</strong></td>
                             <td>${item.id}</td>
                             <td><strong>${item.name}</strong></td>
-                            <td><span style="background:#EBF8FF; color:#2B6CB0; padding:4px 8px; border-radius:6px; font-weight:700; font-size:0.8rem;">${item.className}</span></td>
-                            <td><strong>${pName}</strong> (${pPhone})</td>
+                            <td><span style="background:#EBF8FF; color:#2B6CB0; padding:4px 10px; border-radius:6px; font-weight:700; font-size:0.8rem; white-space:nowrap; display:inline-block;">${item.className}</span></td>
+                            <td>${parentDisplay}</td>
                             <td><span class="student-status-badge">${label}</span></td>
                         </tr>
                     `;
