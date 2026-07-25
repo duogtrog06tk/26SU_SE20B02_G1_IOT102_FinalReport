@@ -18,11 +18,9 @@ import com.mycompany.webappcamerakidcheck.model.RoleConfig;
 @WebServlet(name = "RoleController", urlPatterns = {"/api/roles"})
 public class RoleController extends HttpServlet {
 
-    private static RoleConfig roleConfig = new RoleConfig();
+    private static volatile RoleConfig roleConfig = new RoleConfig();
     private static volatile boolean useRestFallback = true; // Force REST fallback always
     private final Gson gson = new Gson();
-
-    private static final String FIREBASE_DB_URL = "https://kidcheckdb-default-rtdb.asia-southeast1.firebasedatabase.app/";
 
     @Override
     public void init() throws ServletException {
@@ -57,7 +55,7 @@ public class RoleController extends HttpServlet {
 
     private void syncRolesRest() {
         try {
-            String urlString = FIREBASE_DB_URL + "role_configurations.json";
+            String urlString = FirebaseConfig.getDatabaseUrl() + "/role_configurations.json";
             java.net.URL url = java.net.URI.create(urlString).toURL();
             java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
@@ -90,7 +88,7 @@ public class RoleController extends HttpServlet {
 
     private boolean saveRoleConfigRest(RoleConfig config) {
         try {
-            String urlString = FIREBASE_DB_URL + "role_configurations.json";
+            String urlString = FirebaseConfig.getDatabaseUrl() + "/role_configurations.json";
             java.net.URL url = java.net.URI.create(urlString).toURL();
             java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
             conn.setRequestMethod("PUT");

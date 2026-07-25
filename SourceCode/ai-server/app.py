@@ -12,6 +12,7 @@ Server sẽ chạy ở http://0.0.0.0:5000
 import logging
 import cv2
 import numpy as np
+import threading
 from flask import Flask, request, jsonify
 from flask_cors import CORS  # FIX #2: Cho phép Web App gọi API qua trình duyệt không bị chặn CORS
 
@@ -110,12 +111,15 @@ def recognize():
         except Exception:
             captured_b64 = None
 
-        record = firebase_service.write_attendance(student_id, captured_b64)
+        # Chạy ghi điểm danh ở chế độ nền (Background Thread) để phản hồi nhanh cho ESP32-CAM (tránh timeout 2.5s)
+        threading.Thread(target=firebase_service.write_attendance, args=(student_id, captured_b64)).start()
+
+        from datetime import datetime
         return jsonify({
             "status": "known", "success": True,
             "student_id": student_id, "name": name_ok,
-            "attendance_status": record["status"],
-            "timestamp": record["timestamp"]
+            "attendance_status": "processing",
+            "timestamp": datetime.now().strftime("%H:%M:%S")
         }), 200
 
     except Exception as e:
@@ -364,9 +368,9 @@ def verify_and_register():
             face_service.known_encodings.append(new_encoding)
             face_service.known_names.append(student_id)
 
-        local_ip = get_local_ip()
-        new_photo_url = f"http://{local_ip}:5000/faces/{student_id}"
-
+        # Bỏ dùng URL server cục bộ, lưu trực tiếp Base64 (ảnh đầu tiên) để avatar tồn tại vĩnh viễn (cứng)
+        new_photo_url = b64_images[0]
+        
         student_payload = {
             "id": student_id,
             "name": student_name,

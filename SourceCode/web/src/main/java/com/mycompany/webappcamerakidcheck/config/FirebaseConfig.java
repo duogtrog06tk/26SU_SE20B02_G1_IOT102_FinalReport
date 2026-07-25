@@ -8,6 +8,19 @@ import java.io.InputStream;
 
 public class FirebaseConfig {
     private static boolean initialized = false;
+    private static final String DEFAULT_DB_URL = "https://kidcheckdb-default-rtdb.asia-southeast1.firebasedatabase.app";
+
+    public static String getDatabaseUrl() {
+        String envUrl = System.getenv("FIREBASE_DB_URL");
+        if (envUrl != null && !envUrl.isEmpty()) {
+            // Remove trailing slash if exists for consistency
+            if (envUrl.endsWith("/")) {
+                return envUrl.substring(0, envUrl.length() - 1);
+            }
+            return envUrl;
+        }
+        return DEFAULT_DB_URL;
+    }
 
     public static synchronized void initialize() {
         if (initialized) {
@@ -26,7 +39,7 @@ public class FirebaseConfig {
 
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                    .setDatabaseUrl("https://kidcheckdb-default-rtdb.asia-southeast1.firebasedatabase.app") // Đã cập nhật database kidcheckdb mới
+                    .setDatabaseUrl(getDatabaseUrl())
                     .build();
 
             if (FirebaseApp.getApps().isEmpty()) {

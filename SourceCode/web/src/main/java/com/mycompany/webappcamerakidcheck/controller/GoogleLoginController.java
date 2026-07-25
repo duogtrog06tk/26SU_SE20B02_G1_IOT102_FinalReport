@@ -21,8 +21,8 @@ import java.util.Base64;
 @WebServlet("/api/google-login")
 public class GoogleLoginController extends HttpServlet {
 
-    private static final String CLIENT_ID = "93530020887-v6tfsdr94ao2v8a20fsfedkjmsdofalk.apps.googleusercontent.com";
-    private static final String CLIENT_SECRET = "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";
+    private static final String CLIENT_ID = System.getenv("GOOGLE_CLIENT_ID") != null ? System.getenv("GOOGLE_CLIENT_ID") : "93530020887-v6tfsdr94ao2v8a20fsfedkjmsdofalk.apps.googleusercontent.com";
+    private static final String CLIENT_SECRET = System.getenv("GOOGLE_CLIENT_SECRET") != null ? System.getenv("GOOGLE_CLIENT_SECRET") : "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";
     
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final Gson gson = new Gson();
@@ -99,8 +99,8 @@ public class GoogleLoginController extends HttpServlet {
                 return;
             }
 
-            // Bước 4: Kiểm tra tài khoản trong Firebase (đã cache ở AccountController)
-            Account acc = AccountController.getAccountByEmail(email);
+            com.mycompany.webappcamerakidcheck.service.AccountService accountService = new com.mycompany.webappcamerakidcheck.service.AccountService();
+            Account acc = accountService.getAccountByEmail(email);
 
             if (acc == null) {
                 // Theo yêu cầu, nếu chưa có tài khoản trên Firebase thì sẽ báo lỗi không cho truy cập
@@ -108,12 +108,11 @@ public class GoogleLoginController extends HttpServlet {
                 return;
             }
 
-            // Bước 5: Đăng nhập thành công, tạo dữ liệu session và mã hóa Base64
-            String jsonAccount = gson.toJson(acc);
-            String encodedAccount = Base64.getEncoder().encodeToString(jsonAccount.getBytes(StandardCharsets.UTF_8));
+            // Bước 5: Đăng nhập thành công, tạo dữ liệu session an toàn
+            request.getSession().setAttribute("user_session", acc);
             
-            // Redirect về trang chủ với tham số google_auth
-            response.sendRedirect(contextPath + "/index.html?google_auth=" + encodedAccount);
+            // Redirect về trang chủ với tham số google_auth=session_set (để JS gọi API /api/me)
+            response.sendRedirect(contextPath + "/index.html?google_auth=session_set");
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

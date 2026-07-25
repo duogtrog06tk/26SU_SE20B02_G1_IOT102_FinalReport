@@ -2,8 +2,8 @@ package com.mycompany.webappcamerakidcheck.controller;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -20,10 +20,8 @@ import com.mycompany.webappcamerakidcheck.model.AttendanceLog;
 @WebServlet(name = "LogController", urlPatterns = {"/api/logs"})
 public class LogController extends HttpServlet {
 
-    private static final List<AttendanceLog> localBackupList = new ArrayList<>();
+    private static final List<AttendanceLog> localBackupList = new CopyOnWriteArrayList<>();
     private final Gson gson = new Gson();
-
-    private static final String FIREBASE_DB_URL = "https://kidcheckdb-default-rtdb.asia-southeast1.firebasedatabase.app/";
 
     @Override
     public void init() throws ServletException {
@@ -88,7 +86,7 @@ public class LogController extends HttpServlet {
 
     private void syncLogsRest() {
         try {
-            String urlString = FIREBASE_DB_URL + "attendance.json";
+            String urlString = FirebaseConfig.getDatabaseUrl() + "/attendance.json";
             java.net.URL url = java.net.URI.create(urlString).toURL();
             java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
@@ -261,7 +259,7 @@ public class LogController extends HttpServlet {
                 String dateStr = new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date());
                 
                 // Fetch danh sách key trong ngày hôm đó
-                String attUrl = FIREBASE_DB_URL + "attendance/" + dateStr + ".json?shallow=true";
+                String attUrl = com.mycompany.webappcamerakidcheck.config.FirebaseConfig.getDatabaseUrl() + "/attendance/" + dateStr + ".json?shallow=true";
                 java.net.URL url = new java.net.URL(attUrl);
                 java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
@@ -279,7 +277,7 @@ public class LogController extends HttpServlet {
                         while (matcher.find()) {
                             String key = matcher.group(1);
                             if (key != null && (key.equals(targetId) || key.startsWith(targetId + "_") || key.contains(targetId))) {
-                                String delUrlStr = FIREBASE_DB_URL + "attendance/" + dateStr + "/" + key + ".json";
+                                String delUrlStr = com.mycompany.webappcamerakidcheck.config.FirebaseConfig.getDatabaseUrl() + "/attendance/" + dateStr + "/" + key + ".json";
                                 java.net.HttpURLConnection delConn = (java.net.HttpURLConnection) new java.net.URL(delUrlStr).openConnection();
                                 delConn.setRequestMethod("DELETE");
                                 delConn.getResponseCode();

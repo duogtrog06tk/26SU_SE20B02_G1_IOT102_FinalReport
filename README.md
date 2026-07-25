@@ -43,7 +43,7 @@ Web App cung cấp bảng điều khiển (Dashboard) quản lý lớp học, h�
 1. Mở dự án Java trong thư mục `SourceCode/web/` bằng IDE (IntelliJ IDEA, Eclipse, NetBeans) hoặc Visual Studio Code.
 2. Build dự án và chạy ứng dụng trên máy chủ local Tomcat hoặc qua lệnh Maven:
    ```bash
-   mvn clean spring-boot:run
+   mvn clean cargo:run
    ```
 3. Truy cập vào trang quản lý bằng trình duyệt tại địa chỉ:
    ```url

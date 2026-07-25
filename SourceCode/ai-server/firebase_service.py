@@ -21,8 +21,12 @@ logger = logging.getLogger("firebase_service")
 
 class FirebaseService:
     def __init__(self):
-        # _last_checkin_time: lưu lần điểm danh gần nhất của mỗi student_id
-        # dùng để chống ghi trùng liên tục (cooldown) — xem hàm should_skip_duplicate()
+        # Caches for refactored attendance logic
+        self._classes_cache = {}
+        self._students_cache = {}
+        self._today_attendance = {} # format: {"student_id": {"in": bool, "out": bool}}
+        self._current_date = None
+        
         self._last_checkin_time = {}
         self.use_rest_fallback = False
         self.database_url = FIREBASE_DATABASE_URL
@@ -39,6 +43,14 @@ class FirebaseService:
             cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
             firebase_admin.initialize_app(cred, {"databaseURL": self.database_url})
             logger.info("Kết nối Firebase Admin SDK thành công")
+            
+            # Lắng nghe thay đổi của bảng classes để xóa cache tự động
+            try:
+                db.reference("classes").listen(self._on_classes_change)
+                logger.info("Đã đăng ký lắng nghe realtime (Realtime Listener) cho cấu hình lớp học.")
+            except Exception as listen_e:
+                logger.warning(f"Không thể đăng ký listen classes: {listen_e}")
+
         except FileNotFoundError:
             logger.warning(
                 f"Không tìm thấy file {FIREBASE_CREDENTIALS_PATH}. "
@@ -51,6 +63,16 @@ class FirebaseService:
                 "Sẽ sử dụng chế độ REST API Fallback."
             )
             self.use_rest_fallback = True
+
+    def _on_classes_change(self, event):
+        """
+        Callback được gọi tự động (Realtime) khi có bất kỳ thay đổi nào 
+        về khung giờ học trên Firebase (do WebApp cập nhật).
+        """
+        logger.info("Phát hiện thay đổi cấu hình khung giờ lớp học từ Firebase! Đang xóa Cache...")
+        self._classes_cache = {}
+        # Xóa luôn cache học sinh để đảm bảo an toàn nếu ai đó đổi lớp
+        self._students_cache = {}
 
     def register_server_ip(self, ip, port=5000):
         """Ghi địa chỉ IP:port của AI-server lên Firebase để ESP32 tự động đọc."""
@@ -258,58 +280,138 @@ class FirebaseService:
         except Exception as e:
             logger.error(f"Lỗi đồng bộ danh sách học sinh từ Firebase: {e}")
 
+    def get_student_class_config(self, student_id):
+        """Lấy thông tin học sinh và khung giờ của lớp từ cache (TTL 5 phút) hoặc Firebase."""
+        now_ts = time.time()
+        
+        # Kiểm tra cache học sinh (hết hạn sau 5 phút)
+        if student_id not in self._students_cache or (now_ts - self._students_cache[student_id].get("ts", 0)) > 300:
+            try:
+                if self.use_rest_fallback:
+                    import requests
+                    r = requests.get(f"{self.database_url}students/{student_id}.json", timeout=3)
+                    if r.status_code == 200 and r.json():
+                        self._students_cache[student_id] = {"data": r.json(), "ts": now_ts}
+                else:
+                    st_data = db.reference(f"students/{student_id}").get()
+                    if st_data:
+                        self._students_cache[student_id] = {"data": st_data, "ts": now_ts}
+            except Exception as e:
+                logger.warning(f"Lỗi lấy thông tin học sinh {student_id}: {e}")
+
+        student = self._students_cache.get(student_id, {}).get("data", {})
+        class_name = student.get("className", "")
+        
+        # Kiểm tra cache lớp học (hết hạn sau 5 phút)
+        if class_name and (class_name not in self._classes_cache or (now_ts - self._classes_cache[class_name].get("ts", 0)) > 300):
+            try:
+                if self.use_rest_fallback:
+                    import requests
+                    r = requests.get(f"{self.database_url}classes/{class_name}.json", timeout=3)
+                    if r.status_code == 200 and r.json():
+                        self._classes_cache[class_name] = {"data": r.json(), "ts": now_ts}
+                else:
+                    cls_data = db.reference(f"classes/{class_name}").get()
+                    if cls_data:
+                        self._classes_cache[class_name] = {"data": cls_data, "ts": now_ts}
+            except Exception as e:
+                logger.warning(f"Lỗi lấy thông tin lớp {class_name}: {e}")
+
+        class_info = self._classes_cache.get(class_name, {}).get("data", {})
+        return student, class_info
+
     def should_skip_duplicate(self, student_id):
-        now = time.time()
-        last_time = self._last_checkin_time.get(student_id)
+        """
+        Kiểm tra nếu học sinh nên bị bỏ qua ghi nhận diện (chống spam Web/Firebase).
+        Quy tắc:
+        - Buổi sáng (trước pickupTime): Chỉ ghi 1 lần.
+        - Buổi chiều (sau pickupTime): Chỉ ghi 1 lần VÀ phải có điểm danh sáng.
+        """
+        now = datetime.now()
+        today_str = now.strftime("%Y-%m-%d")
+        time_str = now.strftime("%H:%M:%S")
 
-        if last_time is not None and (now - last_time) < COOLDOWN_SECONDS:
-            logger.info(f"Bỏ qua ghi trùng cho {student_id} — vừa điểm danh {now - last_time:.1f}s trước")
-            return True
+        # Reset cache nếu qua ngày mới
+        if self._current_date != today_str:
+            self._today_attendance = {}
+            self._current_date = today_str
 
-        self._last_checkin_time[student_id] = now
-        return False
+        student, class_info = self.get_student_class_config(student_id)
+        pickup_time = class_info.get("pickupTime", PICKUP_START_TIME)
+
+        # Lấy trạng thái điểm danh trong ngày từ Cache hoặc tải lại từ Firebase nếu chưa có
+        if student_id not in self._today_attendance:
+            in_status = False
+            out_status = False
+            try:
+                if self.use_rest_fallback:
+                    import requests
+                    r_in = requests.get(f"{self.database_url}attendance/{today_str}/{student_id}_in.json", timeout=2)
+                    if r_in.status_code == 200 and r_in.json(): in_status = True
+                    r_out = requests.get(f"{self.database_url}attendance/{today_str}/{student_id}_out.json", timeout=2)
+                    if r_out.status_code == 200 and r_out.json(): out_status = True
+                else:
+                    if db.reference(f"attendance/{today_str}/{student_id}_in").get(): in_status = True
+                    if db.reference(f"attendance/{today_str}/{student_id}_out").get(): out_status = True
+            except Exception:
+                pass
+            self._today_attendance[student_id] = {"in": in_status, "out": out_status}
+
+        att = self._today_attendance[student_id]
+
+        if time_str < pickup_time:
+            # Nhận diện buổi sáng
+            if att["in"]:
+                return True # Đã điểm danh sáng rồi -> Bỏ qua web, chỉ kêu bíp
+            return False
+        else:
+            # Nhận diện buổi chiều
+            if not att["in"]:
+                return True # Sáng vắng mặt -> Bỏ qua web chiều luôn
+            if att["out"]:
+                return True # Đã đón buổi chiều rồi -> Bỏ qua web
+            return False
 
     def write_attendance(self, student_id, image_url=None):
         now = datetime.now()
         today_str = now.strftime("%Y-%m-%d")
         time_str = now.strftime("%H:%M:%S")
 
+        student, class_info = self.get_student_class_config(student_id)
+        student_name = student.get("name") or student_id
+        parent_email = student.get("parentEmail")
+        
+        pickup_time = class_info.get("pickupTime", PICKUP_START_TIME)
+        checkin_deadline = class_info.get("lateTime", CHECK_IN_DEADLINE)
+
         is_pickup = False
-        if time_str > PICKUP_START_TIME:
-            status = "present"
+        if time_str > pickup_time:
+            status = "pickup"
             is_pickup = True
             node_suffix = "_out"
         else:
-            status = "late" if time_str > CHECK_IN_DEADLINE else "present"
+            status = "late" if time_str > checkin_deadline else "present"
             node_suffix = "_in"
 
-        # Tra cứu tên thật của học sinh từ Firebase Database
-        student_name = student_id
-        parent_email = None
+        # Update cache IMMEDIATELY so concurrent/immediate next recognitions skip writing
+        if student_id not in self._today_attendance:
+            self._today_attendance[student_id] = {"in": False, "out": False}
+        if is_pickup:
+            self._today_attendance[student_id]["out"] = True
+        else:
+            self._today_attendance[student_id]["in"] = True
+
         existing_log = None
         try:
             if self.use_rest_fallback:
                 import requests
-                r_st = requests.get(f"{self.database_url}students/{student_id}.json", timeout=3)
-                if r_st.status_code == 200 and r_st.json():
-                    student_data = r_st.json()
-                    student_name = student_data.get("name") or student_id
-                    parent_email = student_data.get("parentEmail")
-                
-                # Fetch existing attendance for today
                 r_att = requests.get(f"{self.database_url}attendance/{today_str}/{student_id}{node_suffix}.json", timeout=3)
                 if r_att.status_code == 200 and r_att.json():
                     existing_log = r_att.json()
             else:
-                st_data = db.reference(f"students/{student_id}").get()
-                if st_data and isinstance(st_data, dict):
-                    student_name = st_data.get("name") or student_id
-                    parent_email = st_data.get("parentEmail")
-                
-                # Fetch existing attendance for today
                 existing_log = db.reference(f"attendance/{today_str}/{student_id}{node_suffix}").get()
         except Exception as e:
-            logger.warning(f"Không thể lấy thông tin cho {student_id}: {e}")
+            logger.warning(f"Không thể lấy attendance hiện tại cho {student_id}: {e}")
 
         if existing_log and isinstance(existing_log, dict):
             # Nếu đã có điểm danh, giữ nguyên timestamp và status

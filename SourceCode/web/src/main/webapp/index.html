@@ -948,51 +948,7 @@
                             </div>
                         </div>
                     </div>
-                    <!-- WIFI ESP32-CAM ACCESS POINT -->
-                    <div
-                        style="margin-top: 25px; padding: 20px; border-radius: 12px; background: rgba(0,0,0,0.02); border: 1.5px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.01); width: 100%;">
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                            <h4
-                                style="margin: 0; font-size: 0.95rem; color: var(--primary-dark); font-weight: 700; display: flex; align-items: center; gap: 8px;">
-                                <i class="fa-solid fa-wifi" style="color: var(--primary);"></i>Cấu hình WiFi ESP32-CAM
-                                Access Point
-                            </h4>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span id="status-esp-wifi-ap" class="status-badge"
-                                    style="background:#FFEBEB; color:#FF3B30; padding:4px 10px; border-radius:20px; font-size:0.75rem; font-weight:800; border:1px solid rgba(255,59,48,0.15);">Offline
-                                    (192.168.4.1)</span>
-                                <button class="btn btn-secondary" onclick="checkEspWifiAPConnection()"
-                                    style="padding: 4px 8px; font-size: 0.75rem; min-height: unset; height: auto;"
-                                    title="Kiểm tra kết nối trực tiếp"><i
-                                        class="fa-solid fa-arrows-rotate"></i></button>
-                            </div>
-                        </div>
-                        <div
-                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) auto; gap: 15px; align-items: flex-end;">
-                            <div style="margin: 0;">
-                                <label
-                                    style="display:block; margin-bottom:6px; font-weight:700; font-size:0.8rem; color: var(--text-light);">WiFi
-                                    SSID (Thiết bị phát)</label>
-                                <input type="text" id="setting-esp-ssid" class="form-input" value="KidCheck-Setup-Wifi"
-                                    readonly
-                                    style="background: rgba(0,0,0,0.04); cursor: not-allowed; height: 38px; font-size: 0.85rem; font-weight: 600; margin: 0;">
-                            </div>
-                            <div style="margin: 0;">
-                                <label
-                                    style="display:block; margin-bottom:6px; font-weight:700; font-size:0.8rem; color: var(--text-light);">Mật
-                                    khẩu WiFi AP mới (Đồng bộ qua Cloud)</label>
-                                <input type="password" id="setting-esp-wifi-pass" class="form-input"
-                                    placeholder="Nhập mật khẩu mới..." value="12345678"
-                                    style="height: 38px; font-size: 0.85rem; margin: 0;">
-                            </div>
-                            <div style="margin: 0;">
-                                <button class="btn btn-primary" onclick="changeEspWifiPassword()"
-                                    style="height: 38px; min-height: unset; padding: 0 16px; font-size: 0.8rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; margin: 0;"><i
-                                        class="fa-solid fa-key"></i> Lưu & Đồng bộ</button>
-                            </div>
-                        </div>
-                    </div>
+
 
                 </div>
             </section>
@@ -1163,7 +1119,7 @@
                     <div
                         style="display: flex; gap: 20px; align-items: center; margin-bottom: 24px; width: 100%; background: rgba(255,255,255,0.5); padding: 16px; border-radius: 18px;">
                         <img id="parent-kid-photo"
-                            src="https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=150&auto=format&fit=crop"
+                            src="assets/images/default_avatar.png"
                             style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
                         <div>
                             <div style="font-size: 18px; font-weight: 800; color: var(--text);" id="parent-kid-name">
@@ -1181,7 +1137,7 @@
                         <div
                             style="width:100%; height:250px; border-radius: 16px; overflow:hidden; position:relative; background: #0D0C15; border: 2px solid white; box-shadow: var(--shadow);">
                             <img id="parent-evidence-photo"
-                                src="https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=150&auto=format&fit=crop"
+                                src="assets/images/default_avatar.png"
                                 style="width:100%; height:100%; object-fit: contain;">
                             <div style="position:absolute; bottom: 10px; left:10px; background: rgba(0,0,0,0.6); color:white; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700;"
                                 id="parent-evidence-time">
@@ -1505,7 +1461,7 @@
                         ảnh nhận diện bé</label>
                     <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
                         <img id="student-photo-preview"
-                            src="https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=150&auto=format&fit=crop"
+                            src="assets/images/default_avatar.png"
                             style="width: 70px; height: 70px; border-radius: 12px; object-fit: cover; border: 2px solid var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
                         <span id="student-photo-status-tag"
                             style="font-size: 0.8rem; color: var(--text-light); text-align: left; font-weight: 600;"><i
@@ -2391,23 +2347,28 @@
             // XỬ LÝ ĐĂNG NHẬP GOOGLE TỪ URL
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('google_auth')) {
-                try {
-                    const encodedStr = urlParams.get('google_auth');
-                    const jsonStr = decodeURIComponent(escape(atob(encodedStr)));
-                    const rawUser = JSON.parse(jsonStr);
-                    // Chuẩn hóa object: Account từ backend dùng linkedStudentId, frontend dùng studentId
-                    const user = {
-                        name: rawUser.name,
-                        role: rawUser.role,
-                        email: rawUser.email,
-                        studentId: rawUser.linkedStudentId || rawUser.studentId || null
-                    };
-                    const page = (user.role === 'parent') ? 'parent' : 'dashboard';
-                    sessionStorage.setItem('kidcheck_session', JSON.stringify({ user: user, page: page }));
-                    window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
-                } catch (e) {
-                    console.error("Lỗi parse Google Auth:", e);
-                }
+                // Fetch thông tin user từ session backend
+                fetch('/WebAppCameraKidcheck/api/me')
+                    .then(response => {
+                        if (!response.ok) throw new Error('Not logged in');
+                        return response.json();
+                    })
+                    .then(rawUser => {
+                        // Chuẩn hóa object: Account từ backend dùng linkedStudentId, frontend dùng studentId
+                        const user = {
+                            name: rawUser.name,
+                            role: rawUser.role,
+                            email: rawUser.email,
+                            studentId: rawUser.linkedStudentId || rawUser.studentId || null
+                        };
+                        const page = (user.role === 'parent') ? 'parent' : 'dashboard';
+                        sessionStorage.setItem('kidcheck_session', JSON.stringify({ user: user, page: page }));
+                        window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+                        window.location.reload(); // Reload để áp dụng session ngay
+                    })
+                    .catch(e => {
+                        console.error("Lỗi lấy thông tin phiên đăng nhập Google:", e);
+                    });
             } else if (urlParams.has('google_error')) {
                 const err = urlParams.get('google_error');
                 if (err === 'not_registered') {
@@ -3675,7 +3636,7 @@
                     const statusTextEl = document.getElementById('welcome-status-text');
                     if (statusTextEl) statusTextEl.innerText = 'Vui lòng đứng trước camera ESP32-CAM để hệ thống nhận diện';
                     const photoEl = document.getElementById('welcome-photo');
-                    if (photoEl) photoEl.src = 'https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=150&auto=format&fit=crop';
+                    if (photoEl) photoEl.src = 'assets/images/default_avatar.png';
                     const codeEl = document.getElementById('welcome-code');
                     if (codeEl) codeEl.innerText = '-';
                     const classEl = document.getElementById('welcome-class');
@@ -3753,7 +3714,7 @@
 
             // 4. Ảnh đại diện: Ảnh mà ESP32-CAM chụp để nhận diện bé
             if (photoEl) {
-                photoEl.src = capturedPhoto || student.photo || 'https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=150&auto=format&fit=crop';
+                photoEl.src = capturedPhoto || student.photo || 'assets/images/default_avatar.png';
             }
 
             // 5. Trạng thái & Viền màu khung (Xanh lá: Check-in Đúng giờ; Cam: Đi muộn; Xanh dương: Đã đón về)
@@ -3978,7 +3939,7 @@
                         <td>${parentInfo}</td>
                         <td>
                             <div style="display:flex; align-items:center; gap:8px;">
-                                <img src="${student.photo}" style="width:48px; height:48px; border-radius:10px; object-fit:cover;">
+                                <img src="${student.photo}" onerror="this.onerror=null; this.src='assets/images/default_avatar.png';" style="width:48px; height:48px; border-radius:10px; object-fit:cover;">
                                 ${currentUser.role === 'admin' ? `<button onclick="openCaptureModal('${student.id}')" class="btn btn-secondary" style="padding:4px 8px; font-size:0.7rem;"><i class="fa-solid fa-camera"></i> Nạp Cam</button>` : ''}
                             </div>
                         </td>
@@ -4335,7 +4296,7 @@
             document.getElementById('student-photo-mode').value = 'upload';
             document.getElementById('student-photo-file').value = '';
             const preview = document.getElementById('student-photo-preview');
-            if (preview) preview.src = 'https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=150&auto=format&fit=crop';
+            if (preview) preview.src = 'assets/images/default_avatar.png';
             const statusTag = document.getElementById('student-photo-status-tag');
             if (statusTag) statusTag.innerHTML = `<i class="fa-solid fa-shield-cat" style="color: var(--primary); margin-right: 4px;"></i> Sẵn sàng nhận diện`;
 
@@ -4440,7 +4401,7 @@
                 const isEdit = editId !== "";
                 const method = isEdit ? 'PUT' : 'POST';
 
-                let photoUrl = "https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=150&auto=format&fit=crop";
+                let photoUrl = "assets/images/default_avatar.png";
                 if (isEdit) {
                     photoUrl = students.find(s => s.id === editId)?.photo || photoUrl;
                 }
@@ -4500,7 +4461,8 @@
                             });
 
                             if (aiRes.ok) {
-                                photoUrl = `${actualAiServerUrl}/faces/${id}?t=${Date.now()}`;
+                                const base64Photo = await getSelectedPhotoBase64();
+                                photoUrl = base64Photo || photoUrl; // Cứng Base64 vào Firebase
                             } else {
                                 const errData = await aiRes.json().catch(() => ({}));
                                 showToast((currentLang === 'vi' ? "❌ Thẩm định AI thất bại: " : "❌ AI Error: ") + (errData.message || "Tệp ảnh không chứa khuôn mặt rõ nét! Yêu cầu chọn ảnh khác."), 'error');
@@ -4590,7 +4552,7 @@
 
             // Nạp ảnh hiện tại vào khung Xem trước Preview
             const preview = document.getElementById('student-photo-preview');
-            if (preview) preview.src = student.photo || 'https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=150&auto=format&fit=crop';
+            if (preview) preview.src = student.photo || 'assets/images/default_avatar.png';
             const statusTag = document.getElementById('student-photo-status-tag');
             if (statusTag) statusTag.innerHTML = `<i class="fa-solid fa-circle-check" style="color: var(--success); margin-right: 4px;"></i> Ảnh nhận diện hiện tại`;
 
@@ -5245,19 +5207,7 @@
                 console.error("Lỗi lấy IP ESP32-CAM từ Firebase:", e);
             }
 
-            try {
-                // 3. Lấy mật khẩu WiFi AP của ESP32 từ Firebase để điền vào input
-                const wifiRes = await fetch('https://kidcheckdb-default-rtdb.asia-southeast1.firebasedatabase.app/System/Device_Config.json');
-                if (wifiRes.ok) {
-                    const wifiData = await wifiRes.json();
-                    if (wifiData && wifiData.ap_password) {
-                        const passInput = document.getElementById('setting-esp-wifi-pass');
-                        if (passInput) passInput.value = wifiData.ap_password;
-                    }
-                }
-            } catch (e) {
-                console.error("Lỗi lấy cấu hình WiFi AP từ Firebase:", e);
-            }
+
         }
 
         async function loadSettingsView() {
@@ -5271,7 +5221,7 @@
                 await fetchFirebaseSystemConfigs();
                 checkEspCamConnection();
                 checkAiServerConnection();
-                checkEspWifiAPConnection();
+
             }
         }
 
@@ -5368,60 +5318,7 @@
             updateCameraStream(false);
         }
 
-        async function changeEspWifiPassword() {
-            const newPass = document.getElementById('setting-esp-wifi-pass').value;
-            if (!newPass || newPass.length < 8) {
-                alert(currentLang === 'vi' ? "Mật khẩu WiFi phải có ít nhất 8 ký tự!" : "Wi-Fi password must be at least 8 characters!");
-                return;
-            }
 
-            const ssid = document.getElementById('setting-esp-ssid').value;
-
-            try {
-                // 1. Ghi cấu hình lên Firebase
-                const res = await fetch(`https://kidcheckdb-default-rtdb.asia-southeast1.firebasedatabase.app/System/Device_Config.json`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ap_password: newPass })
-                });
-
-                if (!res.ok) {
-                    throw new Error("Không thể đồng bộ tới Firebase");
-                }
-
-                // 2. Gửi cấu hình trực tiếp tới ESP32-CAM qua mạng AP (nếu đang kết nối)
-                try {
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 5000); // Thêm Timeout 5s
-
-                    const formData = new FormData();
-                    formData.append("ssid", ssid);
-                    formData.append("pass", newPass);
-
-                    await fetch('http://192.168.4.1/setting', {
-                        method: 'POST',
-                        body: formData,
-                        signal: controller.signal,
-                        mode: 'no-cors' // Cần no-cors vì ESP32 thường không cấu hình CORS header
-                    });
-
-                    clearTimeout(timeoutId);
-                    console.log("Đã gửi cấu hình tới ESP32 AP (192.168.4.1)");
-                } catch (apErr) {
-                    console.warn("Không thể gửi cấu hình trực tiếp tới ESP32 AP (192.168.4.1). Có thể chưa kết nối vào mạng ESP32.", apErr);
-                }
-
-                alert(currentLang === 'vi'
-                    ? "Đã đồng bộ cấu hình WiFi! Thiết bị ESP32-CAM sẽ tự động nhận cấu hình mới."
-                    : "WiFi configuration synced successfully! The ESP32-CAM device will automatically apply it.");
-
-            } catch (err) {
-                console.error("Lỗi đồng bộ cấu hình WiFi AP:", err);
-                alert(currentLang === 'vi'
-                    ? "Lưu mật khẩu thất bại! Vui lòng kiểm tra lại kết nối mạng."
-                    : "Save failed! Please check your network connection.");
-            }
-        }
 
         async function checkAiServerConnection() {
             const el = document.getElementById('status-ai-server');
@@ -5447,25 +5344,7 @@
             }
         }
 
-        async function checkEspWifiAPConnection() {
-            const el = document.getElementById('status-esp-wifi-ap');
-            if (!el) return;
-            el.innerText = currentLang === 'vi' ? 'Đang kiểm tra...' : 'Checking...';
-            el.style.background = '#F0F0F0';
-            el.style.color = '#7F8C8D';
-            el.style.borderColor = '#BDC3C7';
 
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 1200);
-                // IP mặc định của mạng WiFi AP do ESP32-CAM phát ra là 192.168.4.1
-                await fetch('http://192.168.4.1/', { signal: controller.signal, mode: 'no-cors' });
-                clearTimeout(timeoutId);
-                setOnlineStatus(el, 'Connected (192.168.4.1)');
-            } catch (err) {
-                setOfflineStatus(el, 'Offline (192.168.4.1)');
-            }
-        }
 
         function setOnlineStatus(el, text) {
             el.innerText = text;
