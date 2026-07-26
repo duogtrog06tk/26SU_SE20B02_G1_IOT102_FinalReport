@@ -51,6 +51,13 @@ class FirebaseService:
             except Exception as listen_e:
                 logger.warning(f"Không thể đăng ký listen classes: {listen_e}")
 
+            # Lắng nghe thay đổi của bảng students (khi Web App đổi trạng thái điểm danh)
+            try:
+                db.reference("students").listen(self._on_students_change)
+                logger.info("Đã đăng ký lắng nghe realtime (Realtime Listener) cho trạng thái học sinh.")
+            except Exception as listen_e:
+                logger.warning(f"Không thể đăng ký listen students: {listen_e}")
+
         except FileNotFoundError:
             logger.warning(
                 f"Không tìm thấy file {FIREBASE_CREDENTIALS_PATH}. "
@@ -73,6 +80,16 @@ class FirebaseService:
         self._classes_cache = {}
         # Xóa luôn cache học sinh để đảm bảo an toàn nếu ai đó đổi lớp
         self._students_cache = {}
+
+    def _on_students_change(self, event):
+        """
+        Callback được gọi tự động (Realtime) khi trạng thái học sinh thay đổi 
+        (ví dụ: WebApp reset trạng thái về 'Chưa điểm danh').
+        """
+        logger.info(f"Phát hiện thay đổi data học sinh từ Firebase! Path: {event.path}")
+        self._students_cache = {}
+        # Reset luôn cache điểm danh AI để ép AI Server quét lại (cho phép điểm danh lại)
+        self._today_attendance = {}
 
     def register_server_ip(self, ip, port=5000):
         """Ghi địa chỉ IP:port của AI-server lên Firebase để ESP32 tự động đọc."""
@@ -339,8 +356,10 @@ class FirebaseService:
         student, class_info = self.get_student_class_config(student_id)
         pickup_time = class_info.get("pickupTime", PICKUP_START_TIME)
 
-        # Lấy trạng thái điểm danh trong ngày từ Cache hoặc tải lại từ Firebase nếu chưa có
-        if student_id not in self._today_attendance:
+        # Dựa vào trạng thái gốc trên Firebase: Nếu bị set về "Chưa điểm danh", thì coi như chưa điểm danh thật sự
+        if student.get("status") == "Chưa điểm danh":
+            self._today_attendance[student_id] = {"in": False, "out": False}
+        elif student_id not in self._today_attendance:
             in_status = False
             out_status = False
             try:
