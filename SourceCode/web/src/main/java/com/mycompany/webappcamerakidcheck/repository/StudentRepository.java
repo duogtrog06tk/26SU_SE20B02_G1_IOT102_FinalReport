@@ -115,16 +115,19 @@ public class StudentRepository {
 
             while (matcher.find()) {
                 String dateKey = matcher.group(1);
-                String deleteUrl = FirebaseConfig.getDatabaseUrl() + "/attendance/" + dateKey + "/" + studentId + ".json";
-                try {
-                    URL delUrl = URI.create(deleteUrl).toURL();
-                    HttpURLConnection delConn = (HttpURLConnection) delUrl.openConnection();
-                    delConn.setRequestMethod("DELETE");
-                    delConn.setConnectTimeout(3000);
-                    delConn.setReadTimeout(3000);
-                    delConn.getResponseCode();
-                } catch (Exception e) {
-                    System.err.println("Lỗi xóa log ngày " + dateKey + ": " + e.getMessage());
+                String[] suffixes = {"_in", "_out"};
+                for (String suffix : suffixes) {
+                    String deleteUrl = FirebaseConfig.getDatabaseUrl() + "/attendance/" + dateKey + "/" + studentId + suffix + ".json";
+                    try {
+                        URL delUrl = URI.create(deleteUrl).toURL();
+                        HttpURLConnection delConn = (HttpURLConnection) delUrl.openConnection();
+                        delConn.setRequestMethod("DELETE");
+                        delConn.setConnectTimeout(3000);
+                        delConn.setReadTimeout(3000);
+                        delConn.getResponseCode();
+                    } catch (Exception e) {
+                        System.err.println("Lỗi xóa log ngày " + dateKey + " (" + suffix + "): " + e.getMessage());
+                    }
                 }
             }
         } catch (Exception e) {

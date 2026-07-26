@@ -1965,10 +1965,9 @@
             if (!log || !student) return false;
             const sId = String(student.id || "").trim();
             const lId = String(log.id || log.studentId || "").trim();
+            // CHỈ match bằng ID vì ID là chuỗi định danh duy nhất (VD: HS01)
+            // Firebase log key thường có dạng HS01_in hoặc HS01_out
             if (sId && lId && (sId === lId || lId.startsWith(sId + "_") || sId.startsWith(lId + "_"))) return true;
-            const sName = String(student.name || "").trim().toLowerCase();
-            const lName = String(log.name || log.studentName || "").trim().toLowerCase();
-            if (sName && lName && (sName === lName || lName.includes(sName) || sName.includes(lName))) return true;
             return false;
         }
 
@@ -3001,7 +3000,7 @@
 
             let filteredStudents = students;
             if (currentUser.role === 'teacher') {
-                const assigned = teacherClassAssignments[currentUser.name] || [];
+                const assigned = teacherClassAssignments[currentUser.email] || [];
                 filteredStudents = students.filter(s => assigned.includes(s.className));
             } else if (currentUser.role === 'admin') {
                 const select = document.getElementById('dash-class-select');
@@ -3039,7 +3038,7 @@
             // Lọc logs của giáo viên hoặc theo class select của admin
             let filteredLogs = logs;
             if (currentUser.role === 'teacher') {
-                const assigned = teacherClassAssignments[currentUser.name] || [];
+                const assigned = teacherClassAssignments[currentUser.email] || [];
                 filteredLogs = logs.filter(l => assigned.includes(l.className));
             } else if (currentUser.role === 'admin') {
                 const select = document.getElementById('dash-class-select');
@@ -3113,7 +3112,7 @@
             let filteredClasses = classes;
             // Nếu là giáo viên, chỉ hiển thị các lớp giáo viên phụ trách
             if (currentUser.role === 'teacher') {
-                const assigned = teacherClassAssignments[currentUser.name] || [];
+                const assigned = teacherClassAssignments[currentUser.email] || [];
                 filteredClasses = classes.filter(c => assigned.includes(c.name));
             }
 
@@ -3356,7 +3355,7 @@
                                     const rec = dateObj[key];
                                     const recName = rec && (rec.student_name || rec.name) ? String(rec.student_name || rec.name).toLowerCase() : '';
 
-                                    if (key === cleanId || key.startsWith(cleanId + "_") || key.toLowerCase().includes(cleanId.toLowerCase()) || (cleanName && recName.includes(cleanName))) {
+                                    if (key === cleanId || key.startsWith(cleanId + "_")) {
                                         console.log(`🔥 XÓA Firebase Node: attendance/${dateKey}/${key}`);
                                         deletePromises.push(
                                             fetch(`${baseUrl}/attendance/${dateKey}/${key}.json`, { method: 'DELETE' })
@@ -3402,7 +3401,7 @@
                                 const recId = String(rec.id || rec.studentId || '').trim();
                                 const recName = String(rec.name || rec.studentName || rec.student_name || '').trim().toLowerCase();
 
-                                if (recId === cleanId || recId.startsWith(cleanId + "_") || recId.toLowerCase().includes(cleanId.toLowerCase()) || (cleanName && recName.includes(cleanName))) {
+                                if (recId === cleanId || recId.startsWith(cleanId + "_")) {
                                     console.log(`🔥 XÓA Firebase Log Node: logs/${pushKey}`);
                                     deletePromises.push(
                                         fetch(`${baseUrl}/logs/${pushKey}.json`, { method: 'DELETE' })
@@ -3425,7 +3424,7 @@
                     if (latestData && typeof latestData === 'object') {
                         const recId = String(latestData.id || latestData.studentId || latestData.student_name || '').trim();
                         const recName = String(latestData.name || latestData.studentName || latestData.student_name || '').trim().toLowerCase();
-                        if (recId === cleanId || recId.startsWith(cleanId + "_") || recId.toLowerCase().includes(cleanId.toLowerCase()) || (cleanName && recName.includes(cleanName))) {
+                        if (recId === cleanId || recId.startsWith(cleanId + "_")) {
                             console.log(`🔥 XÓA System/Latest_Recognition`);
                             await fetch(`${baseUrl}/System/Latest_Recognition.json`, { method: 'DELETE' });
                             if (rtdb) {
@@ -3866,7 +3865,7 @@
         function loadStudentsTable() {
             const filter = document.getElementById('student-class-filter');
             if (currentUser.role === 'teacher') {
-                const assigned = teacherClassAssignments[currentUser.name] || [];
+                const assigned = teacherClassAssignments[currentUser.email] || [];
                 filter.innerHTML = `<option value="all">${currentLang === 'vi' ? 'Tất cả lớp phụ trách' : 'All Assigned Classes'}</option>`;
                 classes.filter(c => assigned.includes(c.name)).forEach(c => {
                     filter.innerHTML += `<option value="${c.name}">${c.name}</option>`;
@@ -3889,7 +3888,7 @@
             let filtered = students;
             const targetCls = String(clsFilter).trim().toLowerCase();
             if (currentUser.role === 'teacher') {
-                const assigned = teacherClassAssignments[currentUser.name] || [];
+                const assigned = teacherClassAssignments[currentUser.email] || [];
                 if (clsFilter === 'all') {
                     filtered = students.filter(s => assigned.includes(s.className));
                 } else {
@@ -4649,7 +4648,7 @@
 
             let filteredClasses = classes;
             if (currentUser.role === 'teacher') {
-                const assigned = teacherClassAssignments[currentUser.name] || [];
+                const assigned = teacherClassAssignments[currentUser.email] || [];
                 filteredClasses = classes.filter(c => assigned.includes(c.name));
             }
 
@@ -4682,106 +4681,120 @@
             switchRoleTab('tab-teacher-roles');
         }
 
-        function loadTeacherRolesTable() {
+        async function loadTeacherRolesTable() {
             const tbody = document.getElementById('teacher-roles-tbody');
-            tbody.innerHTML = '';
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text-light); padding:20px;"><i class="fa-solid fa-spinner fa-spin" style="margin-right:8px;"></i>Đang tải dữ liệu giáo viên...</td></tr>`;
 
-            // Mẫu danh sách giáo viên
-            const mockTeachers = [
-                { name: "Cô giáo phụ trách lớp", phone: "0987654321" },
-                { name: "Cô Mai Hoa", phone: "0966778899" },
-                { name: "Cô Ngọc Lan", phone: "0955443322" }
-            ];
-
-            mockTeachers.forEach(t => {
-                const assigned = teacherClassAssignments[t.name] || [];
-                const safeName = t.name.replace(/\s+/g, '-');
-
-                // 1. Tạo Dropdown danh sách các lớp hiện tại được phân quyền
-                let assignedOptions = '';
-                if (assigned.length === 0) {
-                    assignedOptions = `<option value="none">${currentLang === 'vi' ? 'Chưa gán lớp nào' : 'No assigned classes'}</option>`;
-                } else {
-                    assigned.forEach(cls => {
-                        assignedOptions += `<option value="${cls}">${cls}</option>`;
-                    });
+            try {
+                const res = await fetch('api/accounts');
+                if (!res.ok) throw new Error('API error');
+                const accounts = await res.json();
+                
+                const teacherAccounts = Object.entries(accounts).filter(([k, v]) => v.role === 'teacher' || v.role === 'admin');
+                
+                if (teacherAccounts.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text-light); padding:20px;">Không có tài khoản giáo viên/admin nào trên hệ thống.</td></tr>`;
+                    return;
                 }
 
-                // 2. Tạo Dropdown danh sách tất cả các lớp của trường để phân quyền thêm
-                let allClassOptions = '';
-                classes.forEach(c => {
-                    allClassOptions += `<option value="${c.name}">${c.name}</option>`;
-                });
+                tbody.innerHTML = '';
+                teacherAccounts.forEach(([key, acc]) => {
+                    // Sử dụng email thay vì tên để làm định danh duy nhất (Tránh lỗi trùng tên)
+                    const identifier = acc.email;
+                    const assigned = teacherClassAssignments[identifier] || [];
+                    const safeName = identifier.replace(/[@.]/g, '-');
 
-                tbody.innerHTML += `
-                    <tr>
-                        <td><strong>${t.name}</strong></td>
-                        <td>${t.phone}</td>
-                        <td>
-                            <div style="display:flex; align-items:center; gap:15px; flex-wrap:wrap;">
-                                <div style="display:inline-flex; align-items:center; gap:5px;">
-                                    <span style="font-size:0.85rem; font-weight:700; color:var(--text);">${currentLang === 'vi' ? 'Đang phụ trách:' : 'Assigned:'}</span>
-                                    <select id="assigned-select-${safeName}" class="form-input" style="width: 150px; height: 36px; padding: 0 10px; min-height: unset; margin: 0; font-size:0.85rem; display:inline-block; vertical-align:middle;">
-                                        ${assignedOptions}
-                                    </select>
-                                    ${assigned.length > 0 ? `
-                                        <button class="btn btn-secondary" onclick="unassignTeacherClass('${t.name}')" style="padding: 6px 12px; font-size: 0.75rem; height: 36px; min-height: unset; color: var(--danger); border-color: var(--danger); vertical-align: middle;">
-                                            <i class="fa-solid fa-trash-can"></i> ${currentLang === 'vi' ? 'Xóa' : 'Remove'}
+                    // 1. Tạo Dropdown danh sách các lớp hiện tại được phân quyền
+                    let assignedOptions = '';
+                    if (assigned.length === 0) {
+                        assignedOptions = `<option value="none">${currentLang === 'vi' ? 'Chưa gán lớp nào' : 'No assigned classes'}</option>`;
+                    } else {
+                        assigned.forEach(cls => {
+                            assignedOptions += `<option value="${cls}">${cls}</option>`;
+                        });
+                    }
+
+                    // 2. Tạo Dropdown danh sách tất cả các lớp của trường để phân quyền thêm
+                    let allClassOptions = '';
+                    classes.forEach(c => {
+                        allClassOptions += `<option value="${c.name}">${c.name}</option>`;
+                    });
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${acc.name}</strong><br><small style="color:var(--text-light)">${acc.email}</small></td>
+                            <td>${acc.role === 'admin' ? '<span class="status-arrived">Admin</span>' : 'Giáo viên'}</td>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:15px; flex-wrap:wrap;">
+                                    <div style="display:inline-flex; align-items:center; gap:5px;">
+                                        <span style="font-size:0.85rem; font-weight:700; color:var(--text);">${currentLang === 'vi' ? 'Đang phụ trách:' : 'Assigned:'}</span>
+                                        <select id="assigned-select-${safeName}" class="form-input" style="width: 150px; height: 36px; padding: 0 10px; min-height: unset; margin: 0; font-size:0.85rem; display:inline-block; vertical-align:middle;">
+                                            ${assignedOptions}
+                                        </select>
+                                        ${assigned.length > 0 ? `
+                                            <button class="btn btn-secondary" onclick="unassignTeacherClass('${identifier}')" style="padding: 6px 12px; font-size: 0.75rem; height: 36px; min-height: unset; color: var(--danger); border-color: var(--danger); vertical-align: middle;">
+                                                <i class="fa-solid fa-trash-can"></i> ${currentLang === 'vi' ? 'Xóa' : 'Remove'}
+                                            </button>
+                                        ` : ''}
+                                    </div>
+                                    <div style="color: var(--border); font-weight: 300; font-size: 1.5rem;">|</div>
+                                    <div style="display:inline-flex; align-items:center; gap:5px;">
+                                        <span style="font-size:0.85rem; font-weight:700; color:var(--text);">${currentLang === 'vi' ? 'Gán thêm lớp:' : 'Assign new:'}</span>
+                                        <select id="all-classes-select-${safeName}" class="form-input" style="width: 150px; height: 36px; padding: 0 10px; min-height: unset; margin: 0; font-size:0.85rem; display:inline-block; vertical-align:middle;">
+                                            ${allClassOptions}
+                                        </select>
+                                        <button class="btn btn-primary" onclick="assignTeacherClass('${identifier}')" style="padding: 6px 12px; font-size: 0.75rem; height: 36px; min-height: unset; vertical-align: middle;">
+                                            <i class="fa-solid fa-plus"></i> ${currentLang === 'vi' ? 'Thêm' : 'Add'}
                                         </button>
-                                    ` : ''}
+                                    </div>
                                 </div>
-                                <div style="color: var(--border); font-weight: 300; font-size: 1.5rem;">|</div>
-                                <div style="display:inline-flex; align-items:center; gap:5px;">
-                                    <span style="font-size:0.85rem; font-weight:700; color:var(--text);">${currentLang === 'vi' ? 'Gán thêm lớp:' : 'Assign new:'}</span>
-                                    <select id="all-classes-select-${safeName}" class="form-input" style="width: 150px; height: 36px; padding: 0 10px; min-height: unset; margin: 0; font-size:0.85rem; display:inline-block; vertical-align:middle;">
-                                        ${allClassOptions}
-                                    </select>
-                                    <button class="btn btn-primary" onclick="assignTeacherClass('${t.name}')" style="padding: 6px 12px; font-size: 0.75rem; height: 36px; min-height: unset; vertical-align: middle;">
-                                        <i class="fa-solid fa-plus"></i> ${currentLang === 'vi' ? 'Thêm' : 'Add'}
-                                    </button>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (error) {
+                console.error("Lỗi tải danh sách tài khoản:", error);
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--danger); padding:20px;">Lỗi kết nối máy chủ!</td></tr>`;
+            }
         }
 
-        async function assignTeacherClass(teacherName) {
-            const safeName = teacherName.replace(/\s+/g, '-');
+        async function assignTeacherClass(identifier) {
+            const safeName = identifier.replace(/[@.]/g, '-');
             const selectId = `all-classes-select-${safeName}`;
             const selectedClass = document.getElementById(selectId).value;
             if (!selectedClass) return;
 
-            if (!teacherClassAssignments[teacherName]) {
-                teacherClassAssignments[teacherName] = [];
+            if (!teacherClassAssignments[identifier]) {
+                teacherClassAssignments[identifier] = [];
             }
-            if (!teacherClassAssignments[teacherName].includes(selectedClass)) {
-                teacherClassAssignments[teacherName].push(selectedClass);
+            if (!teacherClassAssignments[identifier].includes(selectedClass)) {
+                teacherClassAssignments[identifier].push(selectedClass);
                 await saveRoles();
-                alert(currentLang === 'vi' ? `Đã thêm quyền quản lý lớp ${selectedClass} cho giáo viên ${teacherName}!` : `Added class ${selectedClass} to teacher ${teacherName}!`);
+                alert(currentLang === 'vi' ? `Đã thêm quyền quản lý lớp ${selectedClass} cho tài khoản ${identifier}!` : `Added class ${selectedClass} to account ${identifier}!`);
                 loadTeacherRolesTable();
             } else {
-                alert(currentLang === 'vi' ? "Giáo viên này đã được phân quyền quản lý lớp học này rồi!" : "Teacher is already assigned to this class!");
+                alert(currentLang === 'vi' ? "Tài khoản này đã được phân quyền quản lý lớp học này rồi!" : "Account is already assigned to this class!");
             }
         }
 
-        async function unassignTeacherClass(teacherName) {
-            const safeName = teacherName.replace(/\s+/g, '-');
+        async function unassignTeacherClass(identifier) {
+            const safeName = identifier.replace(/[@.]/g, '-');
             const selectId = `assigned-select-${safeName}`;
             const selectedClass = document.getElementById(selectId).value;
             if (!selectedClass || selectedClass === 'none') return;
 
             const confirmMsg = currentLang === 'vi'
-                ? `Bạn có chắc muốn xóa quyền quản lý lớp ${selectedClass} của giáo viên ${teacherName}?`
-                : `Are you sure you want to remove class ${selectedClass} assignment from teacher ${teacherName}?`;
+                ? `Bạn có chắc muốn xóa quyền quản lý lớp ${selectedClass} của tài khoản ${identifier}?`
+                : `Are you sure you want to remove class ${selectedClass} assignment from account ${identifier}?`;
             if (!confirm(confirmMsg)) return;
 
-            const idx = teacherClassAssignments[teacherName].indexOf(selectedClass);
+            if (!teacherClassAssignments[identifier]) return;
+
+            const idx = teacherClassAssignments[identifier].indexOf(selectedClass);
             if (idx > -1) {
-                teacherClassAssignments[teacherName].splice(idx, 1);
+                teacherClassAssignments[identifier].splice(idx, 1);
                 await saveRoles();
-                alert(currentLang === 'vi' ? `Đã xóa quyền quản lý lớp ${selectedClass} của giáo viên ${teacherName}!` : `Removed class ${selectedClass} from teacher ${teacherName}!`);
+                alert(currentLang === 'vi' ? `Đã xóa quyền quản lý lớp ${selectedClass} của tài khoản ${identifier}!` : `Removed class ${selectedClass} from account ${identifier}!`);
                 loadTeacherRolesTable();
             }
         }
@@ -5409,7 +5422,7 @@
                         select.innerHTML += `<option value="${c.name}">${c.name}</option>`;
                     });
                 } else if (currentUser.role === 'teacher') {
-                    const assigned = teacherClassAssignments[currentUser.name] || [];
+                    const assigned = teacherClassAssignments[currentUser.email] || [];
                     select.innerHTML = '';
                     classes.filter(c => assigned.includes(c.name)).forEach(c => {
                         select.innerHTML += `<option value="${c.name}">${c.name}</option>`;
@@ -5436,7 +5449,7 @@
             // Lọc logs của giáo viên
             let targetLogs = logs;
             if (currentUser.role === 'teacher') {
-                const assigned = teacherClassAssignments[currentUser.name] || [];
+                const assigned = teacherClassAssignments[currentUser.email] || [];
                 targetLogs = logs.filter(l => {
                     const stud = findStudentByLog(l);
                     const lCls = l.className || (stud ? stud.className : '');
@@ -5538,7 +5551,7 @@
             // Lọc học sinh được tính
             let targetStudents = students;
             if (currentUser.role === 'teacher') {
-                const assigned = teacherClassAssignments[currentUser.name] || [];
+                const assigned = teacherClassAssignments[currentUser.email] || [];
                 targetStudents = students.filter(s => assigned.includes(s.className));
                 if (classSelect && classSelect !== 'all') {
                     targetStudents = targetStudents.filter(s => s.className === classSelect);
@@ -5595,7 +5608,7 @@
 
             let targetClasses = classes;
             if (currentUser.role === 'teacher') {
-                const assigned = teacherClassAssignments[currentUser.name] || [];
+                const assigned = teacherClassAssignments[currentUser.email] || [];
                 targetClasses = classes.filter(c => assigned.includes(c.name));
                 if (classSelect && classSelect !== 'all') {
                     targetClasses = targetClasses.filter(c => c.name === classSelect);
