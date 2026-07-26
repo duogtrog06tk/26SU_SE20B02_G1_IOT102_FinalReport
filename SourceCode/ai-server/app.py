@@ -370,35 +370,6 @@ def verify_and_register():
 
         # Bỏ dùng URL server cục bộ, lưu trực tiếp Base64 (ảnh đầu tiên) để avatar tồn tại vĩnh viễn (cứng)
         new_photo_url = b64_images[0]
-        
-        student_payload = {
-            "id": student_id,
-            "name": student_name,
-            "photo": new_photo_url
-        }
-
-        if firebase_service.use_rest_fallback:
-            try:
-                py_requests.patch(
-                    f"{firebase_service.database_url}students/{student_id}.json",
-                    json=student_payload,
-                    timeout=5
-                )
-            except Exception as e:
-                logger.error(f"Lỗi REST ghi student payload: {e}")
-        else:
-            try:
-                db.reference(f"students/{student_id}").update(student_payload)
-            except Exception as e:
-                logger.warning(f"Lỗi SDK ghi student payload ({e}). Thử REST...")
-                try:
-                    py_requests.patch(
-                        f"{firebase_service.database_url}students/{student_id}.json",
-                        json=student_payload,
-                        timeout=5
-                    )
-                except Exception as e2:
-                    logger.error(f"REST fallback lỗi: {e2}")
 
         logger.info(f"Đã kiểm duyệt & nạp mẫu thành công cho {student_id} ({len(images_rgb)} ảnh).")
         return jsonify({
