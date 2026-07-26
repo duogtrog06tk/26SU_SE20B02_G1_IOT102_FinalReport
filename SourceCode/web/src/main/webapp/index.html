@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 
 <head>
@@ -13,6 +13,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <!-- Confetti JS for Welcome Panel -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body data-theme="light">
@@ -413,8 +415,8 @@
                     </div>
 
                     <!-- Bar Chart -->
-                    <div id="statistics-chart-container" class="chart-container">
-                        <!-- Biểu đồ cột tự vẽ bằng CSS -->
+                    <div class="chart-container" style="position: relative; height: 250px; width: 100%;">
+                        <canvas id="dashboardChart"></canvas>
                     </div>
                 </div>
             </section>
@@ -724,7 +726,7 @@
                     <div class="panel-title"><i class="fa-solid fa-chart-column"
                             style="color: var(--primary); margin-right: 8px;"></i><span
                             data-i18n="stat-chart-bar-title">Tỷ lệ chuyên cần của từng lớp học (%)</span></div>
-                    <div id="statistics-chart-container-report" class="chart-container">
+                    <div class="chart-container" style="position: relative; height: 300px; width: 100%;"><canvas id="reportChart"></canvas>
                         <!-- Biểu đồ cột tự vẽ bằng CSS -->
                     </div>
                 </div>
@@ -3015,9 +3017,9 @@
             }
 
             const total = filteredStudents.length;
-            const present = filteredStudents.filter(s => s.status === 'Có mặt' || s.status === 'Đi trễ' || s.pickupStatus === 'Đã đón về').length;
+            const present = filteredStudents.filter(s => s.status === 'Có mặt' || s.status === 'Đi trễ' || s.status === 'Đón về' || s.pickupStatus === 'Đã đón về').length;
             const late = filteredStudents.filter(s => s.status === 'Đi trễ').length;
-            const absent = filteredStudents.filter(s => s.status === 'Chưa điểm danh' || s.status === 'Vắng mặt').length;
+            const absent = filteredStudents.filter(s => !s.status || s.status === 'Chưa điểm danh' || s.status === 'Vắng mặt').length;
 
             document.getElementById('stat-total-val').innerText = total;
             document.getElementById('stat-present-val').innerText = present;
@@ -5600,12 +5602,7 @@
                 document.getElementById('stat-rate-absent').innerText = `${absentRate}%`;
             }
 
-            // Vẽ biểu đồ cột chuyên cần của từng lớp
-            const chartBox1 = document.getElementById('statistics-chart-container');
-            const chartBox2 = document.getElementById('statistics-chart-container-report');
-
-            let htmlContent = '';
-
+            // Vẽ biểu đồ cột chuyên cần của từng lớp (Sử dụng Chart.js)
             let targetClasses = classes;
             if (currentUser.role === 'teacher') {
                 const assigned = teacherClassAssignments[currentUser.email] || [];
@@ -5620,38 +5617,83 @@
             }
 
             if (targetClasses.length === 0) {
-                htmlContent = `<div style="color: var(--text-light); padding:20px;">Không có lớp học phù hợp bộ lọc.</div>`;
-                if (chartBox1) chartBox1.innerHTML = htmlContent;
-                if (chartBox2) chartBox2.innerHTML = htmlContent;
+                if (window.dashboardBarChart) window.dashboardBarChart.destroy();
+                if (window.reportBarChart) window.reportBarChart.destroy();
                 return;
             }
 
+            const labels = [];
+            const presentData = [];
+            const lateData = [];
+            const absentData = [];
+
             targetClasses.forEach(c => {
+                labels.push(c.name);
                 const classStudents = students.filter(s => s.className === c.name);
-                const classTotalPoints = classStudents.length * dates.length;
-                let classPresentPoints = 0;
+                
+                let cPresent = 0, cLate = 0, cAbsent = 0;
 
                 dates.forEach(d => {
                     classStudents.forEach(student => {
-                        const hasLog = logs.some(l => l.id === student.id && l.time && l.time.startsWith(d) && (l.status === 'Bé đến lớp' || l.status === 'Bé đến muộn' || l.status === 'Có mặt' || l.status === 'Đi trễ'));
-                        if (hasLog) {
-                            classPresentPoints++;
+                        const studentLogs = logs.filter(l => l.id === student.id && l.time && l.time.startsWith(d));
+                        const hasLog = studentLogs.some(l => l.status === 'Bé đến lớp' || l.status === 'Bé đến muộn' || l.status === 'Có mặt' || l.status === 'Đi trễ' || l.status === 'Đón về' || l.status === 'Đã đón về' || l.status === 'Đón bé về');
+                        
+                        if (!hasLog) {
+                            cAbsent++;
+                        } else {
+                            const hasLate = studentLogs.some(l => l.status === 'Bé đến muộn' || l.status === 'Đi trễ');
+                            if (hasLate) {
+                                cLate++;
+                            } else {
+                                cPresent++;
+                            }
                         }
                     });
                 });
 
-                const presentPercent = classTotalPoints > 0 ? Math.round((classPresentPoints / classTotalPoints) * 100) : 0;
-
-                htmlContent += `
-                    <div class="chart-bar-wrapper">
-                        <div style="font-size:0.8rem; margin-bottom:8px; font-weight:700; color:var(--primary-dark);">${presentPercent}%</div>
-                        <div class="chart-bar ${presentPercent > 80 ? 'bar-present' : (presentPercent > 50 ? 'bar-late' : 'bar-absent')}" style="height: ${presentPercent * 2.2}px;"></div>
-                        <div class="chart-label">${c.name}</div>
-                    </div>
-                `;
+                presentData.push(cPresent);
+                lateData.push(cLate);
+                absentData.push(cAbsent);
             });
-            if (chartBox1) chartBox1.innerHTML = htmlContent;
-            if (chartBox2) chartBox2.innerHTML = htmlContent;
+
+            const chartConfig = {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: currentLang === 'vi' ? 'Đúng giờ' : 'On Time', data: presentData, backgroundColor: '#34d399', borderRadius: 4 },
+                        { label: currentLang === 'vi' ? 'Đi trễ' : 'Late', data: lateData, backgroundColor: '#fbbf24', borderRadius: 4 },
+                        { label: currentLang === 'vi' ? 'Vắng mặt' : 'Absent', data: absentData, backgroundColor: '#ef4444', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    },
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } }
+                    }
+                }
+            };
+
+            const ctx1 = document.getElementById('dashboardChart');
+            if (ctx1) {
+                if (window.dashboardBarChart) window.dashboardBarChart.destroy();
+                window.dashboardBarChart = new Chart(ctx1, chartConfig);
+            }
+
+            const ctx2 = document.getElementById('reportChart');
+            if (ctx2) {
+                if (window.reportBarChart) window.reportBarChart.destroy();
+                window.reportBarChart = new Chart(ctx2, chartConfig);
+            }
         }
 
         // ĐĂNG KÝ CÁC EVENT LISTENERS CHO MÔ PHỎNG ĐIỂM DANH VÀ LỌC BÁO CÁO
