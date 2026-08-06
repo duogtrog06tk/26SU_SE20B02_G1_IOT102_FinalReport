@@ -1,5 +1,6 @@
 // ============================================================================
-// KHỐI 0: THƯ VIỆN HỆ THỐNG, KHAI BÁO NGUYÊN MẪU VÀ SƠ ĐỒ CHÂN PHẦN CỨNG
+// MODULE 0: HỆ THỐNG THƯ VIỆN, ĐỊNH NGHĨA NGOẠI VI VÀ NGUYÊN MẪU HÀM
+// Project: KidCheck IoT Edge Node (ESP32-CAM)
 // ============================================================================
 #include "esp_camera.h"
 #include <WiFi.h>
@@ -10,7 +11,7 @@
 #include <ArduinoJson.h>
 #include <WebServer.h>
 
-// --- KHAI BÁO NGUYÊN MẪU HÀM (FUNCTION PROTOTYPES) ---
+// --- Nguyên mẫu hàm (Function Prototypes) ---
 void initCamera();
 void alertBuzzer(int duration, int count);
 void showMessage(const char* line1, const char* line2);
@@ -22,27 +23,29 @@ void handleReboot();
 void captureAndRecognize();
 void handleStream();
 
-// --- CẤU HÌNH LIÊN KẾT ĐÁM MÂY (FIREBASE TĨNH) ---
+// --- Cấu hình liên kết Firebase ---
 const char* firebase_host = "kidcheckdb-default-rtdb.asia-southeast1.firebasedatabase.app";
 
-// Biến toàn cục lưu trữ địa chỉ URL động của AI-Server sau khi đọc từ Firebase
+// Địa chỉ IP động của AI Gateway thu thập từ Cloud Firebase
 String ai_server_base_url = "";
 
-// Biến cờ bảo vệ tài nguyên phần cứng camera tránh xung đột giữa Live Stream & Nhận diện PIR
+// Cờ đồng bộ quản lý độc quyền phần cứng Camera (tránh race condition giữa Live Stream và PIR Trigger)
 volatile bool is_recognizing = false;
+
+// Thông số cấu hình mạng WiFi cố định
 const char* wifi_ssid = "duongtrong";
 const char* wifi_password = "12345678";
 
-// --- ĐỊNH NGHĨA SƠ ĐỒ CHÂN PHẦN CỨNG (HARDWARE MAP) ---
-#define PIR_PIN 12     // Chân OUT của cảm biến chuyển động PIR AM312
-#define LED_PIN 2      // Chân điều khiển LED đỏ trợ sáng/báo trạng thái
-#define BUZZER_PIN 13  // Chân điều khiển còi chíp Buzzer 3V
-#define I2C_SDA 14     // Chân dữ liệu SDA của màn hình LCD 1602
-#define I2C_SCL 15     // Chân xung nhịp SCL của màn hình LCD 1602
+// --- Sơ đồ kết nối chân phần cứng (Hardware Pinout Map) ---
+#define PIR_PIN 12     // Tín hiệu cảm biến chuyển động hồng ngoại PIR (AM312/SR501)
+#define LED_PIN 2      // Điều khiển đèn LED phụ trợ / Báo hiệu trạng thái
+#define BUZZER_PIN 13  // Còi chíp phản hồi âm thanh (Active Buzzer 3.3V)
+#define I2C_SDA 14     // Chân dữ liệu SDA cho màn hình LCD1602 I2C
+#define I2C_SCL 15     // Chân xung nhịp SCL cho màn hình LCD1602 I2C
 
-// Khởi tạo các đối tượng điều khiển ngoại vi
+// Quản lý các đối tượng ngoại vi
 LiquidCrystal_I2C lcd(0x27, 16, 2);
-WebServer server(80);  // Web Server nội bộ ở cổng 80 đón lệnh điều khiển từ AI Gateway
+WebServer server(80);  // HTTP Web Server lắng nghe trên cổng 80
 
 // --- CẤU HÌNH CHÂN CAMERA (ESP32-CAM AI-THINKER) ---
 #define PWDN_GPIO_NUM 32

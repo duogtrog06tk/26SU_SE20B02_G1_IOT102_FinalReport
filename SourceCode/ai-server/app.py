@@ -14,12 +14,12 @@ import cv2
 import numpy as np
 import threading
 from flask import Flask, request, jsonify
-from flask_cors import CORS  # FIX #2: Cho phép Web App gọi API qua trình duyệt không bị chặn CORS
+from flask_cors import CORS  # Bật CORS cho phép Web App truy cập Cross-Origin API
 
 from face_service import FaceService
 from firebase_service import FirebaseService
 
-# Cấu hình logging — in ra console kèm thời gian, để dễ debug khi demo
+# Cấu hình logging — định dạng thời gian và cấp độ log phục vụ giám sát hệ thống
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -28,7 +28,7 @@ logging.basicConfig(
 logger = logging.getLogger("app")
 
 app = Flask(__name__)
-CORS(app)  # FIX #2: Áp dụng CORS cho toàn bộ Flask app
+CORS(app)  # Kích hoạt CORS middleware toàn cục
 
 # Khởi tạo 1 lần duy nhất khi server start — load known_faces và kết nối Firebase
 # Không khởi tạo lại mỗi lần có request, vì encode ảnh tốn thời gian
